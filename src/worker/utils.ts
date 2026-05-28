@@ -108,13 +108,33 @@ export function parseJsonObject<T>(input: unknown): T {
 
 export async function readJsonBody<T>(request: Request): Promise<T> {
   try {
-    const body = await request.json()
+    const contentType = request.headers.get('content-type') || ''
+
+    let body: any
+
+    if (contentType.includes('application/json')) {
+      body = await request.json()
+    }
+    else if (
+      contentType.includes('multipart/form-data')
+      || contentType.includes('application/x-www-form-urlencoded')
+    ) {
+      const formData = await request.formData()
+
+      body = Object.fromEntries(formData.entries())
+    }
+    else {
+      throw new ApiError(400, `unsupported content-type: ${contentType}`)
+    }
+
     return parseJsonObject<T>(body)
-  } catch (error) {
+  }
+  catch (error) {
     if (error instanceof ApiError) {
       throw error
     }
-    throw new ApiError(400, 'request body must be valid json')
+
+    throw new ApiError(400, 'request body parse failed')
   }
 }
 

@@ -4,7 +4,7 @@
   "description": "A template for building a React application with Vite, Hono, and Cloudflare Workers",
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsx node_modules/vite/bin/vite.js build",
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",

@@ -46,6 +46,7 @@ import {
   setPluginConfigById,
   setPluginEnabledById
 } from './plugins'
+import { ensureMigrations } from './migrations'
 import { StreamHub } from './stream'
 import type { AuthState, EnvBindings, PagedMessages } from './types'
 import {
@@ -82,6 +83,7 @@ type AppEnv = {
 const app = new Hono<AppEnv>()
 
 app.use('*', async (c, next) => {
+  await ensureMigrations(c.env.DB)
   await Promise.all([ensureBootstrap(c.env), ensurePluginBootstrap(c.env.DB)])
   c.set('auth', null)
   await next()
@@ -684,10 +686,14 @@ export default class GotifyWorker extends WorkerEntrypoint<EnvBindings> {
 
   public scheduled(controller: ScheduledController): void {
     this.ctx.waitUntil(
-      Promise.all([
-        ensureBootstrap(this.env),
-        ensurePluginBootstrap(this.env.DB)
-      ]).then(() => runScheduledPlugins({ env: this.env }, controller))
+      ensureMigrations(this.env.DB)
+        .then(() =>
+          Promise.all([
+            ensureBootstrap(this.env),
+            ensurePluginBootstrap(this.env.DB)
+          ])
+        )
+        .then(() => runScheduledPlugins({ env: this.env }, controller))
     )
   }
 }

@@ -19,15 +19,33 @@ credit goes to them.
 
 - API change may not affect immediately
 
-## How to use
+## Deploy from the Cloudflare dashboard
 
-1. `npx wrangler d1 create gotify`, remember replace with your own `database_id`
-   in `wrangler.jsonc`
-2. `npx wrangler d1 migrations apply gotify --remote`
-3. `npx wrangler r2 bucket create gotify-worker`
-4. `npm run cf-typegen` (optional)
-5. `pnpm install`
-5. `npm run build && npm run deploy`
+This project is configured for Cloudflare Workers Builds, so deployment can be
+started from the Cloudflare dashboard without local deploy commands or GitHub
+Actions.
+
+1. In Cloudflare, open **Workers & Pages** and select **Create application**.
+2. Select **Import a repository**, connect the Git provider, and choose this
+   repository.
+3. Use these build settings:
+   - Root directory: leave blank
+   - Build command: `pnpm run build`
+   - Deploy command: `pnpm run cloudflare:deploy`
+   - Non-production branch deploy command: `pnpm run cloudflare:preview`
+4. Select **Save and Deploy**.
+5. After the first deploy succeeds, open the Worker settings and add the
+   runtime secret `GOTIFY_DEFAULT_PASS` in **Variables & Secrets**.
+6. Redeploy from the Cloudflare dashboard before opening the app for the first
+   time.
+
+D1 and R2 resource identifiers are intentionally omitted from `wrangler.jsonc`.
+Wrangler provisions them in the Cloudflare account used by Workers Builds. The
+Worker applies the committed D1 migrations automatically before handling app
+traffic, so no local D1 migration command is required.
+
+Custom domains should be added from the Worker settings in the Cloudflare
+dashboard after the first successful deploy.
 
 ## Plugins
 

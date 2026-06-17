@@ -1,13 +1,15 @@
 {
-  "name": "vite-react-template",
+  "name": "yume-gotify",
   "private": true,
-  "description": "A template for building a React application with Vite, Hono, and Cloudflare Workers",
+  "description": "A Gotify-compatible server for Cloudflare Workers",
   "type": "module",
   "scripts": {
     "build": "tsc -b && vite build",
     "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
+    "cloudflare:deploy": "wrangler deploy",
+    "cloudflare:preview": "wrangler versions upload",
     "dev": "vite",
     "lint": "oxlint . --fix",
     "format": "oxfmt . --write",
@@ -67,7 +69,7 @@
     "wrangler": "^4.79.0"
   },
   "cloudflare": {
-    "label": "Vite React Template",
+    "label": "Yume Gotify",
     "products": [
       "Workers"
     ],

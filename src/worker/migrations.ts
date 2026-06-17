@@ -21,11 +21,15 @@ export function ensureMigrations(db: D1Database): Promise<void> {
 }
 
 async function applyMigrations(db: D1Database): Promise<void> {
-  await db.exec(`CREATE TABLE IF NOT EXISTS d1_migrations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE,
-    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-  );`)
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS d1_migrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )`
+    )
+    .run()
 
   const appliedRows = await db
     .prepare('SELECT name FROM d1_migrations')
@@ -39,14 +43,53 @@ async function applyMigrations(db: D1Database): Promise<void> {
       continue
     }
 
-    await db.exec(`${migration.sql}
-
-INSERT OR IGNORE INTO d1_migrations (name) VALUES (${quoteSql(migration.name)});
-`)
+    for (const statement of splitSqlStatements(migration.sql)) {
+      await db.prepare(statement).run()
+    }
+    await db
+      .prepare('INSERT OR IGNORE INTO d1_migrations (name) VALUES (?)')
+      .bind(migration.name)
+      .run()
     applied.add(migration.name)
   }
 }
 
-function quoteSql(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`
+function splitSqlStatements(sql: string): string[] {
+  const statements: string[] = []
+  let statement = ''
+  let inString = false
+
+  for (let index = 0; index < sql.length; index += 1) {
+    const char = sql[index]
+    const next = sql[index + 1]
+
+    if (char === "'") {
+      statement += char
+      if (inString && next === "'") {
+        statement += next
+        index += 1
+      } else {
+        inString = !inString
+      }
+      continue
+    }
+
+    if (char === ';' && !inString) {
+      const trimmed = statement.trim()
+      if (trimmed) {
+        statements.push(trimmed)
+      }
+      statement = ''
+      continue
+    }
+
+    statement += char
+  }
+
+  const trimmed = statement.trim()
+  if (trimmed) {
+    statements.push(trimmed)
+  }
+
+  return statements
 }

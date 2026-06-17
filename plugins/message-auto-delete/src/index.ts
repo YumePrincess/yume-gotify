@@ -2,6 +2,7 @@ import {
   GotifyPlugin,
   requireConfigObject,
   type PluginDefinition,
+  type PluginScheduledController,
   type PluginState
 } from '@gotify/sdk'
 
@@ -75,7 +76,7 @@ export class MessageAutoDeletePlugin extends GotifyPlugin {
 
   public async onScheduled(
     _state: PluginState,
-    _controller: ScheduledController,
+    _controller: PluginScheduledController,
     config: unknown
   ): Promise<void> {
     await runCleanup(this.host, parseConfig(config).retentionDays)

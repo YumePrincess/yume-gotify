@@ -43,6 +43,12 @@ export interface PluginCleanupStateInput {
   error: string | null
 }
 
+export interface PluginScheduledController {
+  readonly cron: string
+  readonly scheduledTime: number
+  noRetry(): void
+}
+
 export interface GotifyHostApi {
   deleteMessagesOlderThan(cutoffIso: string): Promise<number>
   getClientsLastUsedBefore(cutoffIso: string): Promise<PluginClient[]>
@@ -83,7 +89,7 @@ export abstract class GotifyPlugin {
   ): Promise<void>
   public onScheduled?(
     state: PluginState,
-    controller: ScheduledController,
+    controller: PluginScheduledController,
     config: unknown,
     configText: string
   ): Promise<void>

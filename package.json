@@ -4,17 +4,18 @@
   "description": "A Gotify-compatible server for Cloudflare Workers",
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build",
+    "build": "pnpm run build:plugins && tsc -b && vite build",
+    "build:plugins": "pnpm -r --filter './plugins/*' run build",
     "cf-typegen": "wrangler types",
-    "check": "tsc && vite build && wrangler deploy --dry-run",
+    "check": "pnpm run build:plugins && tsc && vite build && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "cloudflare:deploy": "wrangler deploy",
     "cloudflare:preview": "wrangler versions upload",
-    "dev": "vite",
+    "dev": "pnpm run build:plugins && vite",
     "lint": "oxlint . --fix",
     "format": "oxfmt . --write",
     "preview": "npm run build && vite preview",
-    "test": "vitest run"
+    "test": "pnpm run build:plugins && vitest run"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

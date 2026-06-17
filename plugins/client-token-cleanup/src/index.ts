@@ -4,6 +4,7 @@ import {
   requireConfigObject,
   type GotifyHostApi,
   type PluginClient,
+  type PluginScheduledController,
   type PluginState
 } from '@gotify/sdk'
 
@@ -93,7 +94,7 @@ export class ClientTokenCleanupPlugin extends GotifyPlugin {
 
   public async onScheduled(
     _state: PluginState,
-    _controller: ScheduledController,
+    _controller: PluginScheduledController,
     config: unknown
   ): Promise<void> {
     await runCleanup(this.host, parseConfig(config))

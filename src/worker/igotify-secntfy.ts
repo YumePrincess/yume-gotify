@@ -1,3 +1,5 @@
+import { Buffer } from 'node:buffer'
+
 import type { EnvBindings } from './types'
 import type { IgotifySecNtfyResult } from './igotify-types'
 
@@ -110,39 +112,6 @@ function notificationText(input: SendNotificationInput): {
   }
 }
 
-function base64ToBytes(value: string): Uint8Array {
-  const binary = atob(value)
-  const bytes = new Uint8Array(binary.length)
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index)
-  }
-  return bytes
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = ''
-  for (let index = 0; index < bytes.length; index += 1) {
-    binary += String.fromCharCode(bytes[index] ?? 0)
-  }
-  return btoa(binary)
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  let output = ''
-  for (const byte of bytes) {
-    output += byte.toString(16).padStart(2, '0')
-  }
-  return output
-}
-
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16)
-  }
-  return bytes
-}
-
 function readDerElement(
   bytes: Uint8Array,
   offset: number,
@@ -245,7 +214,7 @@ function publicKeyDer(publicKey: string): Uint8Array {
     ? keyText.replace(/-----BEGIN [^-]+-----|-----END [^-]+-----|\s+/g, '')
     : keyText
 
-  return base64ToBytes(base64)
+  return Buffer.from(base64, 'base64')
 }
 
 function parsePublicKey(publicKey: string): RsaPublicKey {
@@ -258,13 +227,13 @@ function parsePublicKey(publicKey: string): RsaPublicKey {
 }
 
 function bytesToBigInt(bytes: Uint8Array): bigint {
-  const hex = bytesToHex(bytes)
+  const hex = Buffer.from(bytes).toString('hex')
   return hex.length > 0 ? BigInt(`0x${hex}`) : 0n
 }
 
 function bigIntToBytes(value: bigint, length: number): Uint8Array {
   const hex = value.toString(16).padStart(length * 2, '0')
-  const bytes = hexToBytes(hex)
+  const bytes = Buffer.from(hex, 'hex')
   if (bytes.length > length) {
     throw new Error('RSA encrypted payload is too large')
   }
@@ -330,7 +299,7 @@ function rsaPkcs1Encrypt(publicKey: RsaPublicKey, value: string): string {
     bytesToBigInt(publicKey.exponent),
     bytesToBigInt(publicKey.modulus)
   )
-  return bytesToBase64(bigIntToBytes(encrypted, keyLength))
+  return Buffer.from(bigIntToBytes(encrypted, keyLength)).toString('base64')
 }
 
 export function encryptForIgotifyDevice(

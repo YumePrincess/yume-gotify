@@ -452,6 +452,42 @@ export function getMessagesByUser(
   )
 }
 
+export function getMessagesByUserAfter(
+  db: D1Database,
+  userId: number,
+  afterId: number,
+  limit: number
+): Promise<MessageRow[]> {
+  return all<MessageRow>(
+    db,
+    `SELECT m.id, m.application_id, m.message, m.title, m.priority, m.extras, m.date
+     FROM messages m
+     JOIN applications a ON a.id = m.application_id
+     WHERE a.user_id = ? AND m.id > ?
+     ORDER BY m.id ASC
+     LIMIT ?`,
+    userId,
+    afterId,
+    limit
+  )
+}
+
+export function getLatestMessageByUser(
+  db: D1Database,
+  userId: number
+): Promise<{ id: number } | null> {
+  return first<{ id: number }>(
+    db,
+    `SELECT m.id
+     FROM messages m
+     JOIN applications a ON a.id = m.application_id
+     WHERE a.user_id = ?
+     ORDER BY m.id DESC
+     LIMIT 1`,
+    userId
+  )
+}
+
 export async function createMessage(
   db: D1Database,
   input: {

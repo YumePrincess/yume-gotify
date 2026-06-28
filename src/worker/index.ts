@@ -46,6 +46,11 @@ import {
   setPluginConfigById,
   setPluginEnabledById
 } from './plugins'
+import {
+  deliverIgotifyMessage,
+  deliverPendingIgotifyMessages,
+  maybeHandleIgotifyRequest
+} from './igotify'
 import { ensureMigrations } from './migrations'
 import { StreamHub } from './stream'
 import type { AuthState, EnvBindings, PagedMessages } from './types'
@@ -584,6 +589,14 @@ app.post('/message', requireApplication, async (c) => {
 
   const external = toMessageExternal(created)
   await publishToUserStream(c.env, auth.userId, external)
+  c.executionCtx.waitUntil(
+    deliverIgotifyMessage(
+      c.env,
+      auth.userId,
+      external,
+      new URL(c.req.url).origin
+    ).then(() => undefined)
+  )
   return c.json(external)
 })
 
@@ -632,6 +645,11 @@ app.post('/plugin/:id/disable', requireClient, async (c) => {
   const id = parseId(c.req.param('id'))
   await setPluginEnabledById({ env: c.env }, id, false)
   return new Response(null, { status: 204 })
+})
+
+app.all('*', async (c) => {
+  const response = await maybeHandleIgotifyRequest(c.req.raw, c.env)
+  return response ?? jsonError(404, 'Not Found')
 })
 
 app.notFound(() => jsonError(404, 'Not Found'))
@@ -693,7 +711,13 @@ export default class GotifyWorker extends WorkerEntrypoint<EnvBindings> {
             ensurePluginBootstrap(this.env.DB)
           ])
         )
-        .then(() => runScheduledPlugins({ env: this.env }, controller))
+        .then(() =>
+          Promise.all([
+            runScheduledPlugins({ env: this.env }, controller),
+            deliverPendingIgotifyMessages(this.env, '')
+          ])
+        )
+        .then(() => undefined)
     )
   }
 }

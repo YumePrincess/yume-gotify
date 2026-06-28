@@ -2,12 +2,14 @@ import migration0001 from '../../migrations/0001_init.sql?raw'
 import migration0002 from '../../migrations/0002_plugin_states.sql?raw'
 import migration0003 from '../../migrations/0003_plugin_configs.sql?raw'
 import migration0004 from '../../migrations/0004_client_token_cleanup_plugin.sql?raw'
+import migration0005 from '../../migrations/0005_igotify_devices.sql?raw'
 
 const MIGRATIONS = [
   { name: '0001_init.sql', sql: migration0001 },
   { name: '0002_plugin_states.sql', sql: migration0002 },
   { name: '0003_plugin_configs.sql', sql: migration0003 },
-  { name: '0004_client_token_cleanup_plugin.sql', sql: migration0004 }
+  { name: '0004_client_token_cleanup_plugin.sql', sql: migration0004 },
+  { name: '0005_igotify_devices.sql', sql: migration0005 }
 ] as const
 
 let migrationsPromise: Promise<void> | null = null
@@ -34,9 +36,7 @@ async function applyMigrations(db: D1Database): Promise<void> {
   const appliedRows = await db
     .prepare('SELECT name FROM d1_migrations')
     .all<{ name: string }>()
-  const applied = new Set(
-    (appliedRows.results ?? []).map((row) => row.name)
-  )
+  const applied = new Set((appliedRows.results ?? []).map((row) => row.name))
 
   for (const migration of MIGRATIONS) {
     if (applied.has(migration.name)) {

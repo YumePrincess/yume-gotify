@@ -12,6 +12,10 @@ export interface EnvBindings {
   GOTIFY_COMMIT?: string
   GOTIFY_BUILD_DATE?: string
   CORS_ALLOW_ORIGIN?: string
+  SECNTFY_SERVER_URL?: string
+  IGOTIFY_VERSION?: string
+  IGOTIFY_BUILD_DATE?: string
+  ENABLE_CONSOLE_LOG?: string
 }
 
 export interface UserRow {

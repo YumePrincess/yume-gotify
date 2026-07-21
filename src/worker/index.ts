@@ -138,6 +138,21 @@ app.get('/health', async (c) => {
   }
 })
 
+app.get('/config', (c) => {
+  c.header('cache-control', 'no-store')
+  return c.json({
+    register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
+    version: {
+      version: c.env.GOTIFY_VERSION ?? 'worker-dev',
+      commit: c.env.GOTIFY_COMMIT ?? 'unknown',
+      buildDate: c.env.GOTIFY_BUILD_DATE ?? 'unknown'
+    },
+    backgroundImageUrl:
+      c.env.GOTIFY_BACKGROUND_IMAGE_URL?.trim() ||
+      '/static/yume-background.webp'
+  })
+})
+
 app.get('/version', (c) =>
   c.json({
     version: c.env.GOTIFY_VERSION ?? 'worker-dev',

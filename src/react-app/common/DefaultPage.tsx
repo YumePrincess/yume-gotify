@@ -14,16 +14,19 @@ const DefaultPage: FC<React.PropsWithChildren<IProps>> = ({
   maxWidth = 700,
   children
 }) => (
-  <main style={{ margin: '0 auto', maxWidth }}>
+  <section style={{ margin: '0 auto', maxWidth }} aria-labelledby="page-title">
     <Grid container spacing={4}>
       <Grid size={{ xs: 12 }} style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <Typography variant="h4" style={{ flex: 1, minWidth: 300 }}>
+        <Typography
+          id="page-title"
+          variant="h4"
+          style={{ flex: 1, minWidth: 220 }}>
           {title}
         </Typography>
         {rightControl}
       </Grid>
       {children}
     </Grid>
-  </main>
+  </section>
 )
 export default DefaultPage

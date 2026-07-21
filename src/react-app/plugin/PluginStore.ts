@@ -5,6 +5,7 @@ import { BaseStore } from '../common/BaseStore'
 import * as config from '../config'
 import { SnackReporter } from '../snack/SnackManager'
 import { IPlugin } from '../types'
+import { translate } from '../i18n'
 
 export class PluginStore extends BaseStore<IPlugin> {
   public onDelete: () => void = () => {}
@@ -23,17 +24,17 @@ export class PluginStore extends BaseStore<IPlugin> {
     requestJson<IPlugin[]>(`${config.get('url')}plugin`)
 
   protected requestDelete = (): Promise<void> => {
-    this.snack('Cannot delete plugin')
-    throw new Error('Cannot delete plugin')
+    this.snack(translate('cannotDeletePlugin'))
+    throw new Error(translate('cannotDeletePlugin'))
   }
 
   public getName = (id: number): string => {
     const plugin = this.getByIDOrUndefined(id)
     return id === -1
-      ? 'All Plugins'
+      ? translate('allPlugins')
       : plugin !== undefined
         ? plugin.name
-        : 'unknown'
+        : translate('unknown')
   }
 
   @action
@@ -46,7 +47,7 @@ export class PluginStore extends BaseStore<IPlugin> {
       body: newConfig,
       headers: { 'content-type': 'application/x-yaml' }
     })
-    this.snack(`Plugin config updated`)
+    this.snack(translate('pluginConfigUpdated'))
     await this.refresh()
   }
 
@@ -61,7 +62,7 @@ export class PluginStore extends BaseStore<IPlugin> {
         method: 'POST'
       }
     )
-    this.snack(`Plugin ${enabled ? 'enabled' : 'disabled'}`)
+    this.snack(translate(enabled ? 'pluginEnabled' : 'pluginDisabled'))
     await this.refresh()
   }
 }

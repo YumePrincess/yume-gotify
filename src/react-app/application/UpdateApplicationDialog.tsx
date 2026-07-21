@@ -9,6 +9,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { useState } from 'react'
 
 import { NumberField } from '../common/NumberField'
+import { useI18n } from '../i18n'
 
 interface IProps {
   fClose: VoidFunction
@@ -29,6 +30,7 @@ export const UpdateApplicationDialog = ({
   fClose,
   fOnSubmit
 }: IProps) => {
+  const { t } = useI18n()
   const [name, setName] = useState(initialName)
   const [description, setDescription] = useState(initialDescription)
   const [defaultPriority, setDefaultPriority] = useState(initialDefaultPriority)
@@ -45,16 +47,16 @@ export const UpdateApplicationDialog = ({
       onClose={fClose}
       aria-labelledby="form-dialog-title"
       id="app-dialog">
-      <DialogTitle id="form-dialog-title">Update an application</DialogTitle>
+      <DialogTitle id="form-dialog-title">
+        {t('updateApplicationTitle')}
+      </DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          An application is allowed to send messages.
-        </DialogContentText>
+        <DialogContentText>{t('applicationHelp')}</DialogContentText>
         <TextField
           autoFocus
           margin="dense"
           className="name"
-          label="Name *"
+          label={t('nameRequired')}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -63,7 +65,7 @@ export const UpdateApplicationDialog = ({
         <TextField
           margin="dense"
           className="description"
-          label="Short Description"
+          label={t('shortDescription')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           fullWidth
@@ -72,15 +74,15 @@ export const UpdateApplicationDialog = ({
         <NumberField
           margin="dense"
           className="priority"
-          label="Default Priority"
+          label={t('defaultPriority')}
           value={defaultPriority}
           onChange={(e) => setDefaultPriority(e)}
           fullWidth
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
-        <Tooltip title={submitEnabled ? '' : 'name is required'}>
+        <Button onClick={fClose}>{t('cancel')}</Button>
+        <Tooltip title={submitEnabled ? '' : t('nameRequiredHint')}>
           <div>
             <Button
               className="update"
@@ -88,7 +90,7 @@ export const UpdateApplicationDialog = ({
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Update
+              {t('update')}
             </Button>
           </div>
         </Tooltip>

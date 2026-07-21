@@ -5,6 +5,7 @@ import { BaseStore } from '../common/BaseStore'
 import * as config from '../config'
 import { SnackReporter } from '../snack/SnackManager'
 import { IClient } from '../types'
+import { translate } from '../i18n'
 
 export class ClientStore extends BaseStore<IClient> {
   public constructor(private readonly snack: SnackReporter) {
@@ -17,7 +18,7 @@ export class ClientStore extends BaseStore<IClient> {
   protected requestDelete(id: number): Promise<void> {
     return requestVoid(`${config.get('url')}client/${id}`, {
       method: 'DELETE'
-    }).then(() => this.snack('Client deleted'))
+    }).then(() => this.snack(translate('clientDeleted')))
   }
 
   @action
@@ -27,7 +28,7 @@ export class ClientStore extends BaseStore<IClient> {
       body: { name }
     })
     await this.refresh()
-    this.snack('Client updated')
+    this.snack(translate('clientUpdated'))
   }
 
   @action
@@ -43,6 +44,6 @@ export class ClientStore extends BaseStore<IClient> {
   @action
   public create = async (name: string): Promise<void> => {
     await this.createNoNotifcation(name)
-    this.snack('Client added')
+    this.snack(translate('clientAdded'))
   }
 }

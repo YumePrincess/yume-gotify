@@ -5,6 +5,7 @@ import { BaseStore } from '../common/BaseStore'
 import * as config from '../config'
 import { SnackReporter } from '../snack/SnackManager'
 import { IUser } from '../types'
+import { translate } from '../i18n'
 
 export class UserStore extends BaseStore<IUser> {
   constructor(private readonly snack: SnackReporter) {
@@ -17,7 +18,7 @@ export class UserStore extends BaseStore<IUser> {
   protected requestDelete(id: number): Promise<void> {
     return requestVoid(`${config.get('url')}user/${id}`, {
       method: 'DELETE'
-    }).then(() => this.snack('User deleted'))
+    }).then(() => this.snack(translate('userDeleted')))
   }
 
   @action
@@ -27,7 +28,7 @@ export class UserStore extends BaseStore<IUser> {
       body: { name, pass, admin }
     })
     await this.refresh()
-    this.snack('User created')
+    this.snack(translate('userCreated'))
   }
 
   @action
@@ -42,6 +43,6 @@ export class UserStore extends BaseStore<IUser> {
       body: { name, pass, admin }
     })
     await this.refresh()
-    this.snack('User updated')
+    this.snack(translate('userUpdated'))
   }
 }

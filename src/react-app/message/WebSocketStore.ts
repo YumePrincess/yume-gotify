@@ -3,6 +3,7 @@ import * as config from '../config'
 import { CurrentUser } from '../CurrentUser'
 import { SnackReporter } from '../snack/SnackManager'
 import { IMessage } from '../types'
+import { translate } from '../i18n'
 
 export class WebSocketStore {
   private wsActive = false
@@ -37,12 +38,12 @@ export class WebSocketStore {
       this.currentUser
         .tryAuthenticate()
         .then(() => {
-          this.snack('WebSocket connection closed, trying again in 30 seconds.')
+          this.snack(translate('websocketClosed'))
           return setTimeout(() => this.listen(callback), 30000)
         })
         .catch((error: unknown) => {
           if (isHttpError(error) && error.status === 401) {
-            this.snack('Could not authenticate with client token, logging out.')
+            this.snack(translate('clientAuthenticationFailed'))
           }
         })
     }

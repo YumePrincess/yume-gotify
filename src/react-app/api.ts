@@ -1,5 +1,6 @@
 import type { CurrentUser } from './CurrentUser'
 import type { SnackReporter } from './snack/SnackManager'
+import { translate } from './i18n'
 
 interface IErrorResponse {
   error?: string
@@ -120,7 +121,7 @@ const handleRequestError = (error: unknown) => {
   }
 
   if (!isHttpError(error)) {
-    apiContext.snack('Gotify server is not reachable, try refreshing the page.')
+    apiContext.snack(translate('serverUnreachable'))
     return
   }
 
@@ -128,7 +129,7 @@ const handleRequestError = (error: unknown) => {
     void (async () => {
       try {
         await apiContext.currentUser.tryAuthenticate()
-        apiContext.snack('Could not complete request.')
+        apiContext.snack(translate('requestIncomplete'))
       } catch {}
     })()
   }

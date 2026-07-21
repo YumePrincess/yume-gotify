@@ -5,6 +5,7 @@ import { AppStore } from './application/AppStore'
 import { ClientStore } from './client/ClientStore'
 import * as config from './config'
 import { CurrentUser } from './CurrentUser'
+import { I18nProvider } from './i18n'
 import Layout from './layout/Layout'
 import { MessagesStore } from './message/MessagesStore'
 import { WebSocketStore } from './message/WebSocketStore'
@@ -14,6 +15,8 @@ import { unregister } from './registerServiceWorker'
 import { SnackManager } from './snack/SnackManager'
 import { StoreContext, StoreMapping } from './stores'
 import { UserStore } from './user/UserStore'
+import { applyTheme, getThemeChoice } from './preferences'
+import './styles.css'
 
 const { port, hostname, protocol, pathname } = window.location
 const slashes = protocol.concat('//')
@@ -48,8 +51,11 @@ const initStores = (): StoreMapping => {
   }
 }
 
-;(function clientJS() {
+;(async function clientJS() {
+  applyTheme(getThemeChoice())
   config.set('url', prodUrl)
+  await config.loadRuntimeConfig()
+  config.applyBackgroundImage()
   const stores = initStores()
   initApiClient(stores.currentUser, stores.snackManager.snack)
 
@@ -63,8 +69,10 @@ const initStores = (): StoreMapping => {
 
   createRoot(document.getElementById('root')!).render(
     <StoreContext.Provider value={stores}>
-      <Layout />
+      <I18nProvider>
+        <Layout />
+      </I18nProvider>
     </StoreContext.Provider>
   )
   unregister()
-})()
+})().catch(() => {})

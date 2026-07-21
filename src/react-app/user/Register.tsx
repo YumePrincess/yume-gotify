@@ -7,6 +7,8 @@ import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import React from 'react'
 
+import { useI18n } from '../i18n'
+
 interface IProps {
   name?: string
   fClose: VoidFunction
@@ -18,6 +20,7 @@ const RegistrationDialog = ({
   fOnSubmit,
   name: initialName = ''
 }: IProps) => {
+  const { t } = useI18n()
   const [name, setName] = React.useState(initialName)
   const [pass, setPass] = React.useState('')
   const namePresent = name.length !== 0
@@ -45,14 +48,14 @@ const RegistrationDialog = ({
       onClose={fClose}
       aria-labelledby="form-dialog-title"
       id="add-edit-user-dialog">
-      <DialogTitle id="form-dialog-title">Registration</DialogTitle>
+      <DialogTitle id="form-dialog-title">{t('registration')}</DialogTitle>
       <DialogContent>
         <TextField
           autoFocus
           id="register-username"
           margin="dense"
           className="name"
-          label="Username *"
+          label={t('usernameRequired')}
           name="username"
           value={name}
           autoComplete="username"
@@ -66,22 +69,22 @@ const RegistrationDialog = ({
           type="password"
           value={pass}
           fullWidth
-          label="Password *"
+          label={t('passwordFieldRequired')}
           name="password"
           autoComplete="new-password"
           onChange={handlePassChange}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
+        <Button onClick={fClose}>{t('cancel')}</Button>
         <Tooltip
           placement={'bottom-start'}
           title={
             namePresent
               ? passPresent
                 ? ''
-                : 'password is required'
-              : 'username is required'
+                : t('passwordRequired')
+              : t('usernameRequiredHint')
           }>
           <div>
             <Button
@@ -90,7 +93,7 @@ const RegistrationDialog = ({
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Register
+              {t('register')}
             </Button>
           </div>
         </Tooltip>

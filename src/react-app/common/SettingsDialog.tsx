@@ -9,6 +9,7 @@ import { observer } from 'mobx-react-lite'
 import { useState } from 'react'
 
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 
 interface IProps {
   fClose: VoidFunction
@@ -17,6 +18,7 @@ interface IProps {
 const SettingsDialog = observer(({ fClose }: IProps) => {
   const [pass, setPass] = useState('')
   const { currentUser } = useStores()
+  const { t } = useI18n()
 
   const submitAndClose = async () => {
     currentUser.changePassword(pass)
@@ -29,22 +31,22 @@ const SettingsDialog = observer(({ fClose }: IProps) => {
       onClose={fClose}
       aria-labelledby="form-dialog-title"
       id="changepw-dialog">
-      <DialogTitle id="form-dialog-title">Change Password</DialogTitle>
+      <DialogTitle id="form-dialog-title">{t('changePassword')}</DialogTitle>
       <DialogContent>
         <TextField
           className="newpass"
           autoFocus
           margin="dense"
           type="password"
-          label="New Password *"
+          label={t('newPasswordRequired')}
           value={pass}
           onChange={(e) => setPass(e.target.value)}
           fullWidth
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
-        <Tooltip title={pass.length !== 0 ? '' : 'Password is required'}>
+        <Button onClick={fClose}>{t('cancel')}</Button>
+        <Tooltip title={pass.length !== 0 ? '' : t('passwordRequired')}>
           <div>
             <Button
               className="change"
@@ -52,7 +54,7 @@ const SettingsDialog = observer(({ fClose }: IProps) => {
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Change
+              {t('change')}
             </Button>
           </div>
         </Tooltip>

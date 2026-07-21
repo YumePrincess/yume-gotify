@@ -9,6 +9,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { useState } from 'react'
 
 import { NumberField } from '../common/NumberField'
+import { useI18n } from '../i18n'
 
 interface IProps {
   fClose: VoidFunction
@@ -20,6 +21,7 @@ interface IProps {
 }
 
 export const AddApplicationDialog = ({ fClose, fOnSubmit }: IProps) => {
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [defaultPriority, setDefaultPriority] = useState(0)
@@ -36,16 +38,16 @@ export const AddApplicationDialog = ({ fClose, fOnSubmit }: IProps) => {
       onClose={fClose}
       aria-labelledby="form-dialog-title"
       id="app-dialog">
-      <DialogTitle id="form-dialog-title">Create an application</DialogTitle>
+      <DialogTitle id="form-dialog-title">
+        {t('createApplicationTitle')}
+      </DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          An application is allowed to send messages.
-        </DialogContentText>
+        <DialogContentText>{t('applicationHelp')}</DialogContentText>
         <TextField
           autoFocus
           margin="dense"
           className="name"
-          label="Name *"
+          label={t('nameRequired')}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -54,7 +56,7 @@ export const AddApplicationDialog = ({ fClose, fOnSubmit }: IProps) => {
         <TextField
           margin="dense"
           className="description"
-          label="Short Description"
+          label={t('shortDescription')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           fullWidth
@@ -63,15 +65,15 @@ export const AddApplicationDialog = ({ fClose, fOnSubmit }: IProps) => {
         <NumberField
           margin="dense"
           className="priority"
-          label="Default Priority"
+          label={t('defaultPriority')}
           value={defaultPriority}
           onChange={(value) => setDefaultPriority(value)}
           fullWidth
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
-        <Tooltip title={submitEnabled ? '' : 'name is required'}>
+        <Button onClick={fClose}>{t('cancel')}</Button>
+        <Tooltip title={submitEnabled ? '' : t('nameRequiredHint')}>
           <div>
             <Button
               className="create"
@@ -79,7 +81,7 @@ export const AddApplicationDialog = ({ fClose, fOnSubmit }: IProps) => {
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Create
+              {t('create')}
             </Button>
           </div>
         </Tooltip>

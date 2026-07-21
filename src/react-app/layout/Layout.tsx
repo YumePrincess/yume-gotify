@@ -1,5 +1,4 @@
 import {
-  createTheme,
   ThemeProvider,
   StyledEngineProvider,
   Theme,
@@ -26,22 +25,22 @@ import Login from '../user/Login'
 import Users from '../user/Users'
 import Header from './Header'
 import Navigation from './Navigation'
-import { isThemeKey, ThemeKey } from './theme'
+import { applyTheme, useThemePreference } from '../preferences'
+import { createYumeTheme } from './theme'
 
 const useStyles = makeStyles()((theme: Theme) => ({
   content: {
     margin: '0 auto',
-    marginTop: 64,
-    padding: theme.spacing(3),
+    marginTop: 88,
+    minWidth: 0,
+    padding: theme.spacing(3, 3, 4),
     width: '100%',
     [theme.breakpoints.down('sm')]: {
       marginTop: 0,
-      padding: theme.spacing(1)
+      padding: theme.spacing(1.5, 1.25, 3)
     }
   }
 }))
-
-const localStorageThemeKey = 'gotify-theme'
 
 const Layout = observer(() => {
   const {
@@ -56,36 +55,25 @@ const Layout = observer(() => {
     }
   } = useStores()
   const { classes } = useStyles()
-  const [currentTheme, setCurrentTheme] = React.useState<ThemeKey>(() => {
-    const stored = window.localStorage.getItem(localStorageThemeKey)
-    return isThemeKey(stored) ? stored : 'system'
-  })
+  const [currentTheme, setCurrentTheme] = useThemePreference()
   const prefersDark = useMediaQuery('(prefers-color-scheme: dark)')
   const paletteMode =
-    currentTheme === 'system' ? (prefersDark ? 'dark' : 'light') : currentTheme
-  const theme = React.useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: paletteMode
-        }
-      }),
-    [paletteMode]
-  )
+    currentTheme === 'auto' ? (prefersDark ? 'dark' : 'light') : currentTheme
+  const theme = React.useMemo(() => createYumeTheme(paletteMode), [paletteMode])
   const { version } = config.get('version')
   const [navOpen, setNavOpen] = React.useState(false)
   const [showSettings, setShowSettings] = React.useState(false)
 
-  const toggleTheme = () => {
-    const nextMap: Record<ThemeKey, ThemeKey> = {
-      dark: 'light',
-      light: 'system',
-      system: 'dark'
-    }
-    const next = nextMap[currentTheme]
-    setCurrentTheme(next)
-    localStorage.setItem(localStorageThemeKey, next)
-  }
+  React.useEffect(() => {
+    applyTheme(currentTheme)
+    const themeColor = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]'
+    )
+    themeColor?.setAttribute(
+      'content',
+      paletteMode === 'dark' ? '#0d1119' : '#f3ece5'
+    )
+  }, [currentTheme, paletteMode])
 
   const authed = (children: React.ReactNode) => (
     <RequireAuth loggedIn={loggedIn} authenticating={authenticating}>
@@ -99,7 +87,9 @@ const Layout = observer(() => {
         <HashRouter>
           {/* This forces all components to fully rerender including useEffects.
                         The refreshKey is updated when store data was cleaned and pages should refetch their data. */}
-          <div key={refreshKey}>
+          <div
+            key={refreshKey}
+            className={`yume-shell${connectionErrorMessage ? ' yume-shell--with-banner' : ''}`}>
             {!connectionErrorMessage ? null : (
               <ConnectionErrorBanner
                 height={64}
@@ -112,11 +102,11 @@ const Layout = observer(() => {
               <Header
                 admin={admin}
                 name={name}
-                style={{ top: !connectionErrorMessage ? 0 : 64 }}
+                style={{ top: !connectionErrorMessage ? 10 : 74 }}
                 version={version}
                 loggedIn={loggedIn}
                 themeMode={currentTheme}
-                toggleTheme={toggleTheme}
+                setThemeMode={setCurrentTheme}
                 showSettings={() => setShowSettings(true)}
                 logout={logout}
                 setNavOpen={setNavOpen}

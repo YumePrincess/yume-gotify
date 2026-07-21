@@ -18,7 +18,10 @@ const Container: React.FC<React.PropsWithChildren<IProps>> = ({
 }) => {
   const { classes } = useStyles()
   return (
-    <Paper elevation={6} className={classes.paper} style={style}>
+    <Paper
+      elevation={6}
+      className={`${classes.paper} yume-content-card`}
+      style={style}>
       {children}
     </Paper>
   )

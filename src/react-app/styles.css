@@ -1,0 +1,464 @@
+@font-face {
+  font-family: 'MiSans';
+  src: url('/static/fonts/MiSans-Regular.woff2') format('woff2');
+  font-display: swap;
+  font-style: normal;
+  font-weight: 100 900;
+}
+
+:root {
+  color-scheme: light dark;
+  --page-background-color: #f3ece5;
+  --page-background-image: url('/static/yume-background.webp');
+  --page-overlay: linear-gradient(
+    180deg,
+    rgba(255, 248, 241, 0.16),
+    rgba(245, 236, 228, 0.36)
+  );
+  --glass-tint: rgba(255, 255, 255, 0.34);
+  --glass-control-tint: rgba(255, 255, 255, 0.26);
+  --glass-control-focus: rgba(255, 255, 255, 0.44);
+  --glass-border: rgba(255, 255, 255, 0.28);
+  --glass-shadow:
+    0 10px 22px rgba(20, 34, 45, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.18);
+  --glass-shine:
+    inset 2px 2px 1px 0 rgba(255, 255, 255, 0.52),
+    inset -1px -1px 1px 1px rgba(255, 255, 255, 0.32);
+  --glass-control-shine: inset 1px 1px 1px rgba(255, 255, 255, 0.28);
+  --glass-hover: rgba(255, 255, 255, 0.54);
+  --glass-menu-hover-shadow: inset -2px -2px 2px rgba(0, 0, 0, 0.08);
+  --glass-radius: 1.35rem;
+  --glass-radius-large: 1.8rem;
+  --glass-radius-control: 0.85rem;
+  --glass-radius-pill: 999px;
+  --glass-backdrop: blur(3px) saturate(1.1);
+  --glass-floating-backdrop: blur(12px) saturate(1.2);
+  --glass-accent-border: rgba(36, 95, 114, 0.42);
+  --glass-focus-shadow: rgba(36, 95, 114, 0.16);
+  --site-text: #1b2f4d;
+  --site-muted: rgba(27, 47, 77, 0.7);
+  --focus-ring: #245f72;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page-background-color: #05070b;
+  --page-overlay: linear-gradient(
+    180deg,
+    rgba(4, 7, 12, 0.38),
+    rgba(4, 7, 12, 0.78)
+  );
+  --glass-tint: rgba(17, 22, 32, 0.48);
+  --glass-control-tint: rgba(255, 255, 255, 0.08);
+  --glass-control-focus: rgba(255, 255, 255, 0.13);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --glass-shine:
+    inset 1px 1px 1px 0 rgba(255, 255, 255, 0.18),
+    inset -1px -1px 1px 1px rgba(255, 255, 255, 0.06);
+  --glass-control-shine: inset 1px 1px 1px rgba(255, 255, 255, 0.12);
+  --glass-hover: rgba(255, 255, 255, 0.1);
+  --glass-menu-hover-shadow: inset -2px -2px 2px rgba(255, 255, 255, 0.04);
+  --glass-accent-border: rgba(240, 207, 138, 0.42);
+  --glass-focus-shadow: rgba(240, 207, 138, 0.16);
+  --site-text: #f4f6fb;
+  --site-muted: rgba(244, 246, 251, 0.72);
+  --focus-ring: #f0cf8a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --page-background-color: #05070b;
+    --page-overlay: linear-gradient(
+      180deg,
+      rgba(4, 7, 12, 0.38),
+      rgba(4, 7, 12, 0.78)
+    );
+    --glass-tint: rgba(17, 22, 32, 0.48);
+    --glass-control-tint: rgba(255, 255, 255, 0.08);
+    --glass-control-focus: rgba(255, 255, 255, 0.13);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --glass-shine:
+      inset 1px 1px 1px 0 rgba(255, 255, 255, 0.18),
+      inset -1px -1px 1px 1px rgba(255, 255, 255, 0.06);
+    --glass-control-shine: inset 1px 1px 1px rgba(255, 255, 255, 0.12);
+    --glass-hover: rgba(255, 255, 255, 0.1);
+    --glass-menu-hover-shadow: inset -2px -2px 2px rgba(255, 255, 255, 0.04);
+    --glass-accent-border: rgba(240, 207, 138, 0.42);
+    --glass-focus-shadow: rgba(240, 207, 138, 0.16);
+    --site-text: #f4f6fb;
+    --site-muted: rgba(244, 246, 251, 0.72);
+    --focus-ring: #f0cf8a;
+  }
+}
+
+html,
+body,
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html {
+  background: var(--page-background-color);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--site-text);
+  background-color: var(--page-background-color);
+  background-image: var(--page-overlay), var(--page-background-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+  font-family:
+    'MiSans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.yume-shell {
+  --yume-banner-offset: 0px;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.yume-shell--with-banner {
+  --yume-banner-offset: 64px;
+}
+
+button,
+a,
+input,
+textarea,
+.MuiPaper-root {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+button:active,
+.MuiButtonBase-root:active {
+  transform: scale(0.97);
+  transition-duration: 100ms !important;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.yume-brand-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.2));
+}
+
+.yume-glass,
+.MuiPaper-root,
+.MuiDrawer-paper,
+.MuiMenu-paper,
+.MuiDialog-paper {
+  border: 1px solid var(--glass-border) !important;
+  background: var(--glass-tint) !important;
+  box-shadow: var(--glass-shadow), var(--glass-shine) !important;
+  backdrop-filter: var(--glass-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-backdrop) !important;
+}
+
+.MuiAppBar-root.yume-app-bar {
+  right: auto;
+  left: 0;
+  width: calc(100% - 20px);
+  margin: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius-large) !important;
+  background: var(--glass-tint) !important;
+  color: var(--site-text) !important;
+  box-shadow: var(--glass-shadow), var(--glass-shine) !important;
+  backdrop-filter: var(--glass-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-backdrop) !important;
+}
+
+.MuiAppBar-root.yume-app-bar .MuiToolbar-root {
+  min-height: 64px;
+  padding: 6px 14px;
+}
+
+.MuiAppBar-root.yume-app-bar .MuiButton-root,
+.MuiAppBar-root.yume-app-bar .MuiIconButton-root {
+  background: var(--glass-control-tint);
+  box-shadow: var(--glass-control-shine);
+}
+
+.MuiAppBar-root.yume-app-bar .MuiButton-root:hover,
+.MuiAppBar-root.yume-app-bar .MuiIconButton-root:hover {
+  border-color: var(--glass-border);
+  background: var(--glass-hover);
+}
+
+.MuiDrawer-docked .MuiDrawer-paper {
+  position: sticky !important;
+  top: calc(var(--yume-banner-offset) + 88px) !important;
+  align-self: flex-start;
+  height: calc(100vh - var(--yume-banner-offset) - 98px) !important;
+  height: calc(100dvh - var(--yume-banner-offset) - 98px) !important;
+  min-height: 0 !important;
+  margin: 88px 0 10px 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-width: 1px !important;
+  border-radius: var(--glass-radius-large) !important;
+}
+
+.MuiDrawer-modal .MuiDrawer-paper {
+  top: 10px;
+  bottom: 10px;
+  left: 10px;
+  width: min(360px, calc(100% - 20px)) !important;
+  height: auto !important;
+  max-height: calc(100dvh - 20px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-width: 1px !important;
+  border-radius: var(--glass-radius-large) !important;
+  backdrop-filter: var(--glass-floating-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-floating-backdrop) !important;
+}
+
+.MuiDrawer-paper .yume-nav-spacer {
+  display: none;
+}
+
+.MuiDrawer-paper {
+  scrollbar-width: none;
+}
+
+.MuiDrawer-paper::-webkit-scrollbar {
+  display: none;
+}
+
+.MuiPaper-rounded {
+  border-radius: var(--glass-radius-large) !important;
+}
+
+.MuiDialog-paper {
+  overflow: hidden;
+  border-radius: var(--glass-radius-large) !important;
+  backdrop-filter: var(--glass-floating-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-floating-backdrop) !important;
+}
+
+.MuiMenu-paper,
+.MuiPopover-paper {
+  border-radius: var(--glass-radius) !important;
+  backdrop-filter: var(--glass-floating-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-floating-backdrop) !important;
+}
+
+.MuiTableContainer-root,
+.MuiPaper-root:has(> table),
+.MuiPaper-root:has(.MuiTable-root) {
+  overflow: hidden;
+}
+
+.yume-content-card {
+  border-radius: var(--glass-radius-large) !important;
+}
+
+.message .yume-content-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .message .yume-content-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      var(--glass-shadow),
+      var(--glass-shine),
+      0 10px 24px rgba(20, 34, 45, 0.08) !important;
+  }
+}
+
+.MuiTableCell-root {
+  border-color: var(--glass-border) !important;
+}
+
+.MuiTableRow-root {
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover {
+  background: var(--glass-hover);
+}
+
+.MuiTableCell-head {
+  color: var(--site-muted) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+.MuiDialogActions-root {
+  padding: 8px 20px 18px !important;
+}
+
+.MuiMenuItem-root {
+  min-height: 40px !important;
+  margin: 2px 0 !important;
+  border-radius: var(--glass-radius-control) !important;
+}
+
+.MuiMenuItem-root.Mui-selected,
+.MuiMenuItem-root:hover,
+.MuiListItemButton-root:hover,
+.MuiListItemButton-root.Mui-selected {
+  background: var(--glass-hover) !important;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+.MuiListItemButton-root {
+  margin: 4px 10px !important;
+  border-radius: var(--glass-radius-control) !important;
+}
+
+.MuiSwitch-track {
+  border: 1px solid var(--glass-border);
+  background: var(--glass-control-tint) !important;
+  opacity: 1 !important;
+  box-shadow: var(--glass-control-shine);
+}
+
+.MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track {
+  background: color-mix(in srgb, var(--focus-ring) 46%, transparent) !important;
+}
+
+.notistack-MuiContent {
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--glass-radius) !important;
+  background: var(--glass-tint) !important;
+  color: var(--site-text) !important;
+  box-shadow: var(--glass-shadow), var(--glass-shine) !important;
+  backdrop-filter: var(--glass-floating-backdrop) !important;
+  -webkit-backdrop-filter: var(--glass-floating-backdrop) !important;
+}
+
+.MuiBackdrop-root {
+  background: rgba(4, 7, 12, 0.42) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--site-text) 28%, transparent);
+  background-clip: padding-box;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .yume-glass,
+  .MuiPaper-root,
+  .MuiDrawer-paper,
+  .MuiMenu-paper,
+  .MuiDialog-paper,
+  .MuiAppBar-root.yume-app-bar {
+    background: color-mix(
+      in srgb,
+      var(--page-background-color) 92%,
+      white
+    ) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .yume-glass,
+  .MuiPaper-root,
+  .MuiDrawer-paper,
+  .MuiMenu-paper,
+  .MuiDialog-paper,
+  .MuiAppBar-root.yume-app-bar,
+  .notistack-MuiContent {
+    background: var(--page-background-color) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .yume-glass,
+  .MuiPaper-root,
+  .MuiDrawer-paper,
+  .MuiMenu-paper,
+  .MuiDialog-paper,
+  .MuiAppBar-root.yume-app-bar,
+  .notistack-MuiContent {
+    border-color: var(--site-text) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .yume-brand-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .MuiAppBar-root.yume-app-bar {
+    margin-bottom: 10px;
+  }
+
+  .MuiAppBar-root.yume-app-bar .MuiToolbar-root {
+    padding: 6px 10px;
+  }
+
+  .MuiPaper-rounded,
+  .MuiDialog-paper,
+  .yume-content-card {
+    border-radius: var(--glass-radius) !important;
+  }
+}

@@ -6,13 +6,15 @@ import BrightnessAuto from '@mui/icons-material/BrightnessAuto'
 import Chat from '@mui/icons-material/Chat'
 import DevicesOther from '@mui/icons-material/DevicesOther'
 import ExitToApp from '@mui/icons-material/ExitToApp'
-import GitHubIcon from '@mui/icons-material/GitHub'
+import LanguageIcon from '@mui/icons-material/Translate'
 import MenuIcon from '@mui/icons-material/Menu'
 import SupervisorAccount from '@mui/icons-material/SupervisorAccount'
 import { useMediaQuery } from '@mui/material'
 import AppBar from '@mui/material/AppBar'
 import Button, { ButtonProps } from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import { Theme } from '@mui/material/styles'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -20,19 +22,20 @@ import React, { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { makeStyles } from 'tss-react/mui'
 
-import { ThemeKey } from './theme'
+import { useI18n } from '../i18n'
+import { LanguageChoice, ThemeChoice } from '../preferences'
 
-const themeIcons: Record<ThemeKey, React.ReactElement> = {
+const themeIcons: Record<ThemeChoice, React.ReactElement> = {
   dark: <Brightness4 />,
   light: <Brightness7 />,
-  system: <BrightnessAuto />
+  auto: <BrightnessAuto />
 }
 
 const useStyles = makeStyles()((theme: Theme) => ({
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
     [theme.breakpoints.down('sm')]: {
-      paddingBottom: 10
+      paddingBottom: 6
     }
   },
   toolbar: {
@@ -61,10 +64,13 @@ const useStyles = makeStyles()((theme: Theme) => ({
       flex: 1
     },
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
+    minWidth: 190
   },
   titleName: {
-    paddingRight: 10
+    paddingRight: 10,
+    fontWeight: 720,
+    letterSpacing: '-0.025em'
   },
   link: {
     color: 'inherit',
@@ -77,8 +83,8 @@ interface IProps {
   name: string
   admin: boolean
   version: string
-  themeMode: ThemeKey
-  toggleTheme: VoidFunction
+  themeMode: ThemeChoice
+  setThemeMode: (theme: ThemeChoice) => void
   showSettings: VoidFunction
   logout: VoidFunction
   style: CSSProperties
@@ -89,7 +95,7 @@ const Header = ({
   name,
   loggedIn,
   admin,
-  toggleTheme,
+  setThemeMode,
   logout,
   style,
   setNavOpen,
@@ -97,22 +103,48 @@ const Header = ({
   themeMode
 }: IProps) => {
   const { classes } = useStyles()
-  const themeLabel = `Toggle theme (current: ${themeMode})`
+  const { t, languageChoice, setLanguageChoice } = useI18n()
+  const [languageAnchor, setLanguageAnchor] =
+    React.useState<null | HTMLElement>(null)
+  const [themeAnchor, setThemeAnchor] = React.useState<null | HTMLElement>(null)
+  const themeLabel = t('theme')
   const themeIcon = themeIcons[themeMode]
+  const languageOptions: Array<[LanguageChoice, string]> = [
+    ['auto', t('languageAuto')],
+    ['en', t('languageEnglish')],
+    ['fr', t('languageFrench')],
+    ['ja', t('languageJapanese')],
+    ['zh-tw', t('languageTraditionalChinese')],
+    ['zh-cn', t('languageSimplifiedChinese')]
+  ]
+  const themeOptions: Array<[ThemeChoice, string]> = [
+    ['auto', t('themeAuto')],
+    ['dark', t('themeDark')],
+    ['light', t('themeLight')]
+  ]
   return (
     <AppBar
       sx={{ position: { xs: 'sticky', sm: 'fixed' } }}
       style={style}
-      className={classes.appBar}>
+      className={`${classes.appBar} yume-app-bar`}>
       <Toolbar className={classes.toolbar}>
         <div className={classes.title}>
           <Link to="/" className={classes.link}>
-            <Typography
-              variant="h5"
-              className={classes.titleName}
-              color="inherit">
-              Gotify
-            </Typography>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                className="yume-brand-logo"
+                src="static/yume-logo.png"
+                alt=""
+                width="42"
+                height="42"
+              />
+              <Typography
+                variant="h5"
+                className={classes.titleName}
+                color="inherit">
+                {t('brand')}
+              </Typography>
+            </span>
           </Link>
         </div>
         {loggedIn && (
@@ -126,23 +158,63 @@ const Header = ({
         )}
         <div>
           <IconButton
-            onClick={toggleTheme}
+            onClick={(event) => setLanguageAnchor(event.currentTarget)}
+            color="inherit"
+            size="large"
+            title={t('language')}
+            aria-label={t('language')}
+            aria-haspopup="menu"
+            aria-expanded={Boolean(languageAnchor)}>
+            <LanguageIcon />
+          </IconButton>
+          <Menu
+            anchorEl={languageAnchor}
+            open={Boolean(languageAnchor)}
+            onClose={() => setLanguageAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            {languageOptions.map(([choice, label]) => (
+              <MenuItem
+                key={choice}
+                selected={choice === languageChoice}
+                lang={choice === 'auto' ? undefined : choice}
+                onClick={() => {
+                  setLanguageChoice(choice)
+                  setLanguageAnchor(null)
+                }}>
+                {label}
+              </MenuItem>
+            ))}
+          </Menu>
+
+          <IconButton
+            onClick={(event) => setThemeAnchor(event.currentTarget)}
             color="inherit"
             size="large"
             title={themeLabel}
-            aria-label={themeLabel}>
+            aria-label={themeLabel}
+            aria-haspopup="menu"
+            aria-expanded={Boolean(themeAnchor)}>
             {themeIcon}
           </IconButton>
-
-          <a
-            href="https://github.com/bxb100/gotify-server-worker"
-            className={classes.link}
-            target="_blank"
-            rel="noopener noreferrer">
-            <IconButton color="inherit" size="large">
-              <GitHubIcon />
-            </IconButton>
-          </a>
+          <Menu
+            anchorEl={themeAnchor}
+            open={Boolean(themeAnchor)}
+            onClose={() => setThemeAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            {themeOptions.map(([choice, label]) => (
+              <MenuItem
+                key={choice}
+                selected={choice === themeMode}
+                onClick={() => {
+                  setThemeMode(choice)
+                  setThemeAnchor(null)
+                }}>
+                {label}
+              </MenuItem>
+            ))}
+          </Menu>
         </div>
       </Toolbar>
     </AppBar>
@@ -163,6 +235,7 @@ const Buttons = ({
   showSettings: VoidFunction
 }) => {
   const { classes } = useStyles()
+  const { t } = useI18n()
 
   return (
     <div className={classes.menuButtons}>
@@ -170,41 +243,49 @@ const Buttons = ({
         sx={{ display: { sm: 'none', xs: 'block' } }}
         icon={<MenuIcon />}
         onClick={() => setNavOpen(true)}
-        label="menu"
+        label={t('menu')}
         color="inherit"
       />
       {admin && (
         <Link className={classes.link} to="/users" id="navigate-users">
           <ResponsiveButton
             icon={<SupervisorAccount />}
-            label="users"
+            label={t('users')}
             color="inherit"
           />
         </Link>
       )}
       <Link className={classes.link} to="/applications" id="navigate-apps">
-        <ResponsiveButton icon={<Chat />} label="apps" color="inherit" />
+        <ResponsiveButton
+          icon={<Chat />}
+          label={t('applications')}
+          color="inherit"
+        />
       </Link>
       <Link className={classes.link} to="/clients" id="navigate-clients">
         <ResponsiveButton
           icon={<DevicesOther />}
-          label="clients"
+          label={t('clients')}
           color="inherit"
         />
       </Link>
       <Link className={classes.link} to="/plugins" id="navigate-plugins">
-        <ResponsiveButton icon={<Apps />} label="plugins" color="inherit" />
+        <ResponsiveButton
+          icon={<Apps />}
+          label={t('plugins')}
+          color="inherit"
+        />
       </Link>
       <ResponsiveButton
         icon={<AccountCircle />}
-        label={name}
+        label={name || t('account')}
         onClick={showSettings}
         id="changepw"
         color="inherit"
       />
       <ResponsiveButton
         icon={<ExitToApp />}
-        label="Logout"
+        label={t('logout')}
         onClick={logout}
         id="logout"
         color="inherit"
@@ -224,7 +305,7 @@ const ResponsiveButton: React.FC<{
   const matches = useMediaQuery('(max-width:1000px)')
   if (matches) {
     return (
-      <IconButton {...rest} size="large">
+      <IconButton {...rest} size="large" aria-label={label} title={label}>
         {icon}
       </IconButton>
     )

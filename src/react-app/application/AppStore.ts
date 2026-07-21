@@ -7,6 +7,7 @@ import { BaseStore } from '../common/BaseStore'
 import * as config from '../config'
 import { SnackReporter } from '../snack/SnackManager'
 import { IApplication } from '../types'
+import { translate } from '../i18n'
 
 export class AppStore extends BaseStore<IApplication> {
   public onDelete: () => void = () => {}
@@ -23,7 +24,7 @@ export class AppStore extends BaseStore<IApplication> {
       method: 'DELETE'
     }).then(() => {
       this.onDelete()
-      return this.snack('Application deleted')
+      return this.snack(translate('applicationDeleted'))
     })
 
   @action
@@ -35,7 +36,7 @@ export class AppStore extends BaseStore<IApplication> {
       body: formData
     })
     await this.refresh()
-    this.snack('Application image updated')
+    this.snack(translate('applicationImageUpdated'))
   }
 
   public async deleteImage(id: number): Promise<void> {
@@ -44,7 +45,7 @@ export class AppStore extends BaseStore<IApplication> {
         method: 'DELETE'
       })
       await this.refresh()
-      this.snack('Application image deleted')
+      this.snack(translate('applicationImageDeleted'))
     } catch (error) {
       console.error('Error deleting application image:', error)
       throw error
@@ -87,7 +88,7 @@ export class AppStore extends BaseStore<IApplication> {
       body: app
     })
     await this.refresh()
-    this.snack('Application updated')
+    this.snack(translate('applicationUpdated'))
   }
 
   @action
@@ -105,11 +106,15 @@ export class AppStore extends BaseStore<IApplication> {
       }
     })
     await this.refresh()
-    this.snack('Application created')
+    this.snack(translate('applicationCreated'))
   }
 
   public getName = (id: number): string => {
     const app = this.getByIDOrUndefined(id)
-    return id === -1 ? 'All Messages' : app !== undefined ? app.name : 'unknown'
+    return id === -1
+      ? translate('allMessages')
+      : app !== undefined
+        ? app.name
+        : translate('unknown')
   }
 }

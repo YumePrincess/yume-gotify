@@ -5,6 +5,8 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 
+import { useI18n } from '../i18n'
+
 interface IProps {
   title: string
   text: string
@@ -18,6 +20,7 @@ export default function ConfirmDialog({
   fClose,
   fOnSubmit
 }: IProps) {
+  const { t } = useI18n()
   const submitAndClose = () => {
     fOnSubmit()
     fClose()
@@ -34,7 +37,7 @@ export default function ConfirmDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={fClose} className="cancel">
-          No
+          {t('no')}
         </Button>
         <Button
           onClick={submitAndClose}
@@ -42,7 +45,7 @@ export default function ConfirmDialog({
           color="primary"
           variant="contained"
           className="confirm">
-          Yes
+          {t('yes')}
         </Button>
       </DialogActions>
     </Dialog>

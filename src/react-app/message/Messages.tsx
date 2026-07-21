@@ -11,6 +11,7 @@ import ConfirmDialog from '../common/ConfirmDialog'
 import DefaultPage from '../common/DefaultPage'
 import LoadingSpinner from '../common/LoadingSpinner'
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 import { IMessage } from '../types'
 import Message from './Message'
 import { PushMessageDialog } from './PushMessageDialog'
@@ -26,6 +27,7 @@ const label = (text: string) => (
 )
 
 const Messages = observer(() => {
+  const { t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const appId = id == null ? -1 : parseInt(id as string, 10)
 
@@ -42,14 +44,14 @@ const Messages = observer(() => {
 
   const deleteMessage = (message: IMessage) => {
     const key = enqueueSnackbar({
-      message: 'Message deleted',
+      message: t('messageDeleted'),
       variant: 'info',
       action: () => (
         <Button
           color="inherit"
           size="small"
           onClick={() => messagesStore.cancelPendingDelete(message)}>
-          Undo
+          {t('undo')}
         </Button>
       ),
       disableWindowBlurListener: true,
@@ -94,7 +96,7 @@ const Messages = observer(() => {
       return <LoadingSpinner />
     }
     if (hasMessages) {
-      return label("You've reached the end")
+      return label(t('endReached'))
     }
     return null
   }
@@ -110,7 +112,7 @@ const Messages = observer(() => {
       itemContent={renderMessage}
       components={{
         Footer: messageFooter,
-        EmptyPlaceholder: () => label('No messages')
+        EmptyPlaceholder: () => label(t('noMessages'))
       }}
     />
   )
@@ -126,7 +128,7 @@ const Messages = observer(() => {
               color="primary"
               onClick={() => setPushMessageOpen(true)}
               style={{ marginRight: 5 }}>
-              Push Message
+              {t('pushMessage')}
             </Button>
           )}
           <Button
@@ -135,7 +137,7 @@ const Messages = observer(() => {
             color="primary"
             onClick={() => messagesStore.refreshByApp(appId)}
             style={{ marginRight: 5 }}>
-            Refresh
+            {t('refresh')}
           </Button>
           <Button
             id="delete-all"
@@ -145,7 +147,7 @@ const Messages = observer(() => {
             onClick={() => {
               setDeleteAll(true)
             }}>
-            Delete All
+            {t('deleteAll')}
           </Button>
         </div>
       }>
@@ -153,8 +155,8 @@ const Messages = observer(() => {
 
       {deleteAll && (
         <ConfirmDialog
-          title="Confirm Delete"
-          text={'Delete all messages?'}
+          title={t('confirmDelete')}
+          text={t('deleteAllMessages')}
           fClose={() => setDeleteAll(false)}
           fOnSubmit={() => messagesStore.removeByApp(appId)}
         />

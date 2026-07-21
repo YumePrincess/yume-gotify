@@ -22,6 +22,7 @@ import {
   requestPermission
 } from '../snack/browserNotification'
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 
 const useStyles = makeStyles()((theme: Theme) => ({
   root: {
@@ -52,6 +53,7 @@ const Navigation = observer(({ loggedIn, navOpen, setNavOpen }: IProps) => {
     React.useState(mayAllowPermission)
   const { classes } = useStyles()
   const { appStore } = useStores()
+  const { t } = useI18n()
   const apps = appStore.getItems()
 
   const userApps =
@@ -78,10 +80,10 @@ const Navigation = observer(({ loggedIn, navOpen, setNavOpen }: IProps) => {
 
   const placeholderItems = [
     <ListItemButton disabled key={-1}>
-      <ListItemText primary="Some Server" />
+      <ListItemText primary={t('sampleServer')} />
     </ListItemButton>,
     <ListItemButton disabled key={-2}>
-      <ListItemText primary="A Raspberry PI" />
+      <ListItemText primary={t('sampleDevice')} />
     </ListItemButton>
   ]
 
@@ -91,10 +93,10 @@ const Navigation = observer(({ loggedIn, navOpen, setNavOpen }: IProps) => {
       navOpen={navOpen}
       setNavOpen={setNavOpen}
       id="message-navigation">
-      <div className={classes.toolbar} />
+      <div className={`${classes.toolbar} yume-nav-spacer`} />
       <Link className={classes.link} to="/" onClick={() => setNavOpen(false)}>
         <ListItemButton disabled={!loggedIn} className="all">
-          <ListItemText primary="All Messages" />
+          <ListItemText primary={t('allMessages')} />
         </ListItemButton>
       </Link>
       <Divider />
@@ -107,7 +109,7 @@ const Navigation = observer(({ loggedIn, navOpen, setNavOpen }: IProps) => {
               requestPermission()
               setShowRequestNotification(false)
             }}>
-            Enable Notifications
+            {t('enableNotifications')}
           </Button>
         ) : null}
       </Typography>
@@ -117,25 +119,31 @@ const Navigation = observer(({ loggedIn, navOpen, setNavOpen }: IProps) => {
 
 const ResponsiveDrawer: React.FC<
   DrawerProps & { navOpen: boolean; setNavOpen: (open: boolean) => void }
-> = ({ navOpen, setNavOpen, children, ...rest }) => (
-  <>
-    <Drawer
-      sx={{ display: { sm: 'none', xs: 'block' } }}
-      variant="temporary"
-      open={navOpen}
-      {...rest}>
-      <IconButton onClick={() => setNavOpen(false)} size="large">
-        <CloseIcon />
-      </IconButton>
-      {children}
-    </Drawer>
-    <Drawer
-      sx={{ display: { xs: 'none', sm: 'block' } }}
-      variant="permanent"
-      {...rest}>
-      {children}
-    </Drawer>
-  </>
-)
+> = ({ navOpen, setNavOpen, children, ...rest }) => {
+  const { t } = useI18n()
+  return (
+    <>
+      <Drawer
+        sx={{ display: { sm: 'none', xs: 'block' } }}
+        variant="temporary"
+        open={navOpen}
+        {...rest}>
+        <IconButton
+          onClick={() => setNavOpen(false)}
+          size="large"
+          aria-label={t('cancel')}>
+          <CloseIcon />
+        </IconButton>
+        {children}
+      </Drawer>
+      <Drawer
+        sx={{ display: { xs: 'none', sm: 'block' } }}
+        variant="permanent"
+        {...rest}>
+        {children}
+      </Drawer>
+    </>
+  )
+}
 
 export default Navigation

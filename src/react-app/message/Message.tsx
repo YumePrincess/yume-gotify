@@ -11,6 +11,7 @@ import Container from '../common/Container'
 import { Markdown } from '../common/Markdown'
 import { TimeAgoFormatter } from '../common/TimeAgoFormatter'
 import * as config from '../config'
+import { localeTags, useI18n } from '../i18n'
 import { IMessageExtras } from '../types'
 import { contentType, RenderMode } from './extras'
 
@@ -129,6 +130,7 @@ const Message = ({
   onExpand,
   expanded: initialExpanded
 }: IProps) => {
+  const { t } = useI18n()
   const theme = useTheme()
   const contentRef = React.useRef<HTMLDivElement | null>(null)
   const { classes } = useStyles()
@@ -212,7 +214,7 @@ const Message = ({
             size="large"
             fullWidth={true}
             startIcon={expanded ? <ExpandLess /> : <ExpandMore />}>
-            {expanded ? 'Read Less' : 'Read More'}
+            {expanded ? t('readLess') : t('readMore')}
           </Button>
         )}
       </Container>
@@ -228,14 +230,15 @@ const HeaderWide = ({
   title
 }: Pick<IProps, 'appName' | 'image' | 'fDelete' | 'date' | 'title'>) => {
   const { classes } = useStyles()
+  const { language, t } = useI18n()
 
   return (
     <div className={classes.header}>
       <div className={classes.imageWrapper}>
-        {image !== null ? (
+        {image ? (
           <img
             src={config.get('url') + image}
-            alt={`${appName} logo`}
+            alt={t('applicationLogo', { name: appName })}
             width="50"
             height="50"
             className={classes.image}
@@ -251,12 +254,17 @@ const HeaderWide = ({
         </Typography>
       </div>
       <Typography variant="body1" className={classes.date}>
-        <TimeAgo date={date} formatter={TimeAgoFormatter.narrow} />
+        <TimeAgo
+          date={date}
+          formatter={TimeAgoFormatter(localeTags[language]).narrow}
+        />
       </Typography>
       <IconButton
         onClick={fDelete}
         style={{ padding: 14 }}
         className={`${classes.trash} delete`}
+        title={t('delete')}
+        aria-label={t('delete')}
         size="large">
         <Delete />
       </IconButton>
@@ -271,6 +279,7 @@ const HeaderSmall = ({
   title
 }: Pick<IProps, 'appName' | 'image' | 'fDelete' | 'date' | 'title'>) => {
   const { classes } = useStyles()
+  const { language, t } = useI18n()
 
   return (
     <div className={classes.header}>
@@ -282,7 +291,10 @@ const HeaderSmall = ({
           {appName}
         </Typography>
         <Typography variant="body1" className={classes.date}>
-          <TimeAgo date={date} formatter={TimeAgoFormatter.long} />
+          <TimeAgo
+            date={date}
+            formatter={TimeAgoFormatter(localeTags[language]).long}
+          />
         </Typography>
       </div>
       <div
@@ -291,14 +303,16 @@ const HeaderSmall = ({
           onClick={fDelete}
           style={{ padding: 14 }}
           className={`${classes.trash} delete`}
+          title={t('delete')}
+          aria-label={t('delete')}
           size="large">
           <Delete />
         </IconButton>
         <div style={{ width: 30, height: 30 }}>
-          {image !== null ? (
+          {image ? (
             <img
               src={config.get('url') + image}
-              alt={`${appName} logo`}
+              alt={t('applicationLogo', { name: appName })}
               className={classes.image}
             />
           ) : null}

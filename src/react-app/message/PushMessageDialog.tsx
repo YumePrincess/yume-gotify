@@ -9,6 +9,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { useState } from 'react'
 
 import { NumberField } from '../common/NumberField'
+import { useI18n } from '../i18n'
 
 interface IProps {
   appName: string
@@ -23,6 +24,7 @@ export const PushMessageDialog = ({
   fClose,
   fOnSubmit
 }: IProps) => {
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [priority, setPriority] = useState(defaultPriority)
@@ -39,16 +41,15 @@ export const PushMessageDialog = ({
       onClose={fClose}
       aria-labelledby="push-message-title"
       id="push-message-dialog">
-      <DialogTitle id="push-message-title">Push message</DialogTitle>
+      <DialogTitle id="push-message-title">{t('pushMessageTitle')}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Send a push message via {appName}. Leave the title empty to use the
-          application name.
+          {t('pushMessageHelp', { name: appName })}
         </DialogContentText>
         <TextField
           margin="dense"
           className="title"
-          label="Title"
+          label={t('title')}
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -58,7 +59,7 @@ export const PushMessageDialog = ({
           autoFocus
           margin="dense"
           className="message"
-          label="Message *"
+          label={t('messageRequired')}
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -69,15 +70,15 @@ export const PushMessageDialog = ({
         <NumberField
           margin="dense"
           className="priority"
-          label="Priority"
+          label={t('priority')}
           value={priority}
           onChange={(value) => setPriority(value)}
           fullWidth
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
-        <Tooltip title={submitEnabled ? '' : 'message is required'}>
+        <Button onClick={fClose}>{t('cancel')}</Button>
+        <Tooltip title={submitEnabled ? '' : t('messageRequiredHint')}>
           <div>
             <Button
               className="send"
@@ -85,7 +86,7 @@ export const PushMessageDialog = ({
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Send
+              {t('send')}
             </Button>
           </div>
         </Tooltip>

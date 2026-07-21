@@ -14,24 +14,26 @@ import { Link } from 'react-router-dom'
 import CopyableSecret from '../common/CopyableSecret'
 import DefaultPage from '../common/DefaultPage'
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 import { IPlugin } from '../types'
 
 const Plugins = observer(() => {
+  const { t } = useI18n()
   const { pluginStore } = useStores()
   React.useEffect(() => void pluginStore.refresh(), [])
   const plugins = pluginStore.getItems()
   return (
-    <DefaultPage title="Plugins" maxWidth={1000}>
+    <DefaultPage title={t('plugins')} maxWidth={1000}>
       <Grid size={{ xs: 12 }}>
         <Paper elevation={6} style={{ overflowX: 'auto' }}>
           <Table id="plugin-table">
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Enabled</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Token</TableCell>
-                <TableCell>Details</TableCell>
+                <TableCell>{t('enabled')}</TableCell>
+                <TableCell>{t('name')}</TableCell>
+                <TableCell>{t('token')}</TableCell>
+                <TableCell>{t('details')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -64,33 +66,38 @@ interface IRowProps {
 }
 
 const Row: React.FC<IRowProps> = observer(
-  ({ name, id, token, enabled, fToggleStatus }) => (
-    <TableRow>
-      <TableCell>{id}</TableCell>
-      <TableCell>
-        <Switch
-          checked={enabled}
-          onClick={fToggleStatus}
-          className="switch"
-          data-enabled={enabled}
-        />
-      </TableCell>
-      <TableCell>{name}</TableCell>
-      <TableCell>
-        <CopyableSecret
-          value={token}
-          style={{ display: 'flex', alignItems: 'center' }}
-        />
-      </TableCell>
-      <TableCell align="right" padding="none">
-        <Link to={'/plugins/' + id}>
-          <Button>
-            <Settings />
-          </Button>
-        </Link>
-      </TableCell>
-    </TableRow>
-  )
+  ({ name, id, token, enabled, fToggleStatus }) => {
+    const { t } = useI18n()
+    return (
+      <TableRow>
+        <TableCell>{id}</TableCell>
+        <TableCell>
+          <Switch
+            checked={enabled}
+            onClick={fToggleStatus}
+            className="switch"
+            data-enabled={enabled}
+          />
+        </TableCell>
+        <TableCell>{name}</TableCell>
+        <TableCell>
+          <CopyableSecret
+            value={token}
+            style={{ display: 'flex', alignItems: 'center' }}
+          />
+        </TableCell>
+        <TableCell align="right" padding="none">
+          <Link to={'/plugins/' + id}>
+            <Button
+              title={t('pluginSettings')}
+              aria-label={t('pluginSettings')}>
+              <Settings />
+            </Button>
+          </Link>
+        </TableCell>
+      </TableRow>
+    )
+  }
 )
 
 export default Plugins

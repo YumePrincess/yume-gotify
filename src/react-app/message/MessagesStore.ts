@@ -13,6 +13,7 @@ import { BaseStore } from '../common/BaseStore'
 import * as config from '../config'
 import { SnackReporter } from '../snack/SnackManager'
 import { IApplication, IMessage, IPagedMessages } from '../types'
+import { translate } from '../i18n'
 
 const AllMessages = -1
 
@@ -92,7 +93,7 @@ export class MessagesStore {
   public removeByApp = async (appId: number) => {
     if (appId === AllMessages) {
       await requestVoid(config.get('url') + 'message', { method: 'DELETE' })
-      this.snack('Deleted all messages')
+      this.snack(translate('allMessagesDeleted'))
       this.clearAll()
     } else {
       await requestVoid(
@@ -101,9 +102,7 @@ export class MessagesStore {
           method: 'DELETE'
         }
       )
-      this.snack(
-        `Deleted all messages from ${this.appStore.getByID(appId).name}`
-      )
+      this.snack(translate('allMessagesDeleted'))
       this.clear(AllMessages)
       this.clear(appId)
     }
@@ -170,7 +169,7 @@ export class MessagesStore {
       body: payload,
       headers: { 'X-Gotify-Key': app.token }
     })
-    this.snack(`Message sent to ${app.name}`)
+    this.snack(translate('messageSent', { name: app.name }))
   }
 
   @action

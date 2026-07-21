@@ -5,6 +5,7 @@ import { isHttpError, requestJson, requestVoid } from './api'
 import * as config from './config'
 import { SnackReporter } from './snack/SnackManager'
 import { IClient, IUser } from './types'
+import { translate } from './i18n'
 
 const tokenKey = 'gotify-login-key'
 
@@ -47,13 +48,13 @@ export class CurrentUser {
       body: { name, pass }
     })
       .then(() => {
-        this.snack('User Created. Logging in...')
+        this.snack(translate('userCreatedLoggingIn'))
         this.login(name, pass)
         return true
       })
       .catch((error: unknown) => {
         if (!isHttpError(error)) {
-          this.snack('No network connection or server unavailable.')
+          this.snack(translate('networkUnavailable'))
           return false
         }
 
@@ -62,7 +63,10 @@ export class CurrentUser {
           errorDescription?: string
         } | null
         this.snack(
-          `Register failed: ${data?.error ?? 'unknown'}: ${data?.errorDescription ?? ''}`
+          translate('registerFailed', {
+            error: data?.error ?? translate('unknown'),
+            description: data?.errorDescription ?? ''
+          })
         )
         return false
       })
@@ -74,7 +78,8 @@ export class CurrentUser {
     })
     const browser = detect()
     const name =
-      (browser && browser.name + ' ' + browser.version) || 'unknown browser'
+      (browser && browser.name + ' ' + browser.version) ||
+      translate('unknownBrowser')
     requestJson<IClient>(config.get('url') + 'client', {
       method: 'POST',
       auth: false,
@@ -83,7 +88,7 @@ export class CurrentUser {
       headers: { Authorization: 'Basic ' + btoa(username + ':' + password) }
     })
       .then((client) => {
-        this.snack(`A client named '${name}' was created for your session.`)
+        this.snack(translate('sessionClientCreated', { name }))
         this.setToken(client.token)
         this.tryAuthenticate().catch(() => {
           console.log(
@@ -94,7 +99,7 @@ export class CurrentUser {
       .catch(
         action(() => {
           this.authenticating = false
-          return this.snack('Login failed')
+          return this.snack(translate('loginFailed'))
         })
       )
   }
@@ -126,7 +131,7 @@ export class CurrentUser {
         action((error: unknown) => {
           this.authenticating = false
           if (!isHttpError(error)) {
-            this.connectionError('No network connection or server unavailable.')
+            this.connectionError(translate('networkUnavailable'))
             return Promise.reject(error)
           }
 
@@ -173,13 +178,13 @@ export class CurrentUser {
     requestVoid(config.get('url') + 'current/user/password', {
       method: 'POST',
       body: { pass }
-    }).then(() => this.snack('Password changed'))
+    }).then(() => this.snack(translate('passwordChanged')))
   }
 
   public tryReconnect = (quiet = false) => {
     this.tryAuthenticate().catch(() => {
       if (!quiet) {
-        this.snack('Reconnect failed')
+        this.snack(translate('reconnectFailed'))
       }
     })
   }

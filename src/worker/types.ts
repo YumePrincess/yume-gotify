@@ -1,22 +1,6 @@
 import type { PluginCapability } from '@gotify/sdk'
 
-export interface EnvBindings {
-  DB: D1Database
-  STREAM_HUB: DurableObjectNamespace
-  APP_IMAGES?: R2Bucket
-  GOTIFY_REGISTRATION?: string
-  GOTIFY_DEFAULT_USER?: string
-  GOTIFY_DEFAULT_PASS?: string
-  GOTIFY_PASSWORD_ROUNDS?: string
-  GOTIFY_VERSION?: string
-  GOTIFY_COMMIT?: string
-  GOTIFY_BUILD_DATE?: string
-  CORS_ALLOW_ORIGIN?: string
-  SECNTFY_SERVER_URL?: string
-  IGOTIFY_VERSION?: string
-  IGOTIFY_BUILD_DATE?: string
-  ENABLE_CONSOLE_LOG?: string
-}
+export type EnvBindings = Env
 
 export interface UserRow {
   id: number

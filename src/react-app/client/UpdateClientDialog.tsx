@@ -8,6 +8,8 @@ import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import { useState } from 'react'
 
+import { useI18n } from '../i18n'
+
 interface IProps {
   fClose: VoidFunction
   fOnSubmit: (name: string) => Promise<void>
@@ -19,6 +21,7 @@ const UpdateClientDialog = ({
   fOnSubmit,
   initialName = ''
 }: IProps) => {
+  const { t } = useI18n()
   const [name, setName] = useState(initialName)
 
   const submitEnabled = name.length !== 0
@@ -33,17 +36,14 @@ const UpdateClientDialog = ({
       onClose={fClose}
       aria-labelledby="form-dialog-title"
       id="client-dialog">
-      <DialogTitle id="form-dialog-title">Update a Client</DialogTitle>
+      <DialogTitle id="form-dialog-title">{t('updateClientTitle')}</DialogTitle>
       <DialogContent>
-        <DialogContentText>
-          A client manages messages, clients, applications and users (with admin
-          permissions).
-        </DialogContentText>
+        <DialogContentText>{t('clientHelp')}</DialogContentText>
         <TextField
           autoFocus
           margin="dense"
           className="name"
-          label="Name *"
+          label={t('nameRequired')}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -51,8 +51,8 @@ const UpdateClientDialog = ({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={fClose}>Cancel</Button>
-        <Tooltip title={submitEnabled ? '' : 'name is required'}>
+        <Button onClick={fClose}>{t('cancel')}</Button>
+        <Tooltip title={submitEnabled ? '' : t('nameRequiredHint')}>
           <div>
             <Button
               className="update"
@@ -60,7 +60,7 @@ const UpdateClientDialog = ({
               onClick={submitAndClose}
               color="primary"
               variant="contained">
-              Update
+              {t('update')}
             </Button>
           </div>
         </Tooltip>

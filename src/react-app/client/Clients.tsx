@@ -17,11 +17,13 @@ import CopyableSecret from '../common/CopyableSecret'
 import DefaultPage from '../common/DefaultPage'
 import { LastUsedCell } from '../common/LastUsedCell'
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 import { IClient } from '../types'
 import AddClientDialog from './AddClientDialog'
 import UpdateClientDialog from './UpdateClientDialog'
 
 const Clients = observer(() => {
+  const { t } = useI18n()
   const { clientStore } = useStores()
   const [toDeleteClient, setToDeleteClient] = useState<IClient>()
   const [toUpdateClient, setToUpdateClient] = useState<IClient>()
@@ -32,14 +34,14 @@ const Clients = observer(() => {
 
   return (
     <DefaultPage
-      title="Clients"
+      title={t('clients')}
       rightControl={
         <Button
           id="create-client"
           variant="contained"
           color="primary"
           onClick={() => setCreateDialog(true)}>
-          Create Client
+          {t('createClient')}
         </Button>
       }>
       <Grid size={12}>
@@ -47,9 +49,9 @@ const Clients = observer(() => {
           <Table id="client-table">
             <TableHead>
               <TableRow style={{ textAlign: 'center' }}>
-                <TableCell>Name</TableCell>
-                <TableCell style={{ width: 200 }}>Token</TableCell>
-                <TableCell>Last Used</TableCell>
+                <TableCell>{t('name')}</TableCell>
+                <TableCell style={{ width: 200 }}>{t('token')}</TableCell>
+                <TableCell>{t('lastUsed')}</TableCell>
                 <TableCell />
                 <TableCell />
               </TableRow>
@@ -84,8 +86,8 @@ const Clients = observer(() => {
       )}
       {toDeleteClient != null && (
         <ConfirmDialog
-          title="Confirm Delete"
-          text={'Delete ' + toDeleteClient.name + '?'}
+          title={t('confirmDelete')}
+          text={t('deleteNamed', { name: toDeleteClient.name })}
           fClose={() => setToDeleteClient(undefined)}
           fOnSubmit={() => clientStore.remove(toDeleteClient.id)}
         />
@@ -102,29 +104,40 @@ interface IRowProps {
   fDelete: VoidFunction
 }
 
-const Row = ({ name, value, lastUsed, fEdit, fDelete }: IRowProps) => (
-  <TableRow>
-    <TableCell>{name}</TableCell>
-    <TableCell>
-      <CopyableSecret
-        value={value}
-        style={{ display: 'flex', alignItems: 'center', width: 250 }}
-      />
-    </TableCell>
-    <TableCell>
-      <LastUsedCell lastUsed={lastUsed} />
-    </TableCell>
-    <TableCell align="right" padding="none">
-      <IconButton onClick={fEdit} className="edit">
-        <Edit />
-      </IconButton>
-    </TableCell>
-    <TableCell align="right" padding="none">
-      <IconButton onClick={fDelete} className="delete">
-        <Delete />
-      </IconButton>
-    </TableCell>
-  </TableRow>
-)
+const Row = ({ name, value, lastUsed, fEdit, fDelete }: IRowProps) => {
+  const { t } = useI18n()
+  return (
+    <TableRow>
+      <TableCell>{name}</TableCell>
+      <TableCell>
+        <CopyableSecret
+          value={value}
+          style={{ display: 'flex', alignItems: 'center', width: 250 }}
+        />
+      </TableCell>
+      <TableCell>
+        <LastUsedCell lastUsed={lastUsed} />
+      </TableCell>
+      <TableCell align="right" padding="none">
+        <IconButton
+          onClick={fEdit}
+          className="edit"
+          title={t('edit')}
+          aria-label={t('edit')}>
+          <Edit />
+        </IconButton>
+      </TableCell>
+      <TableCell align="right" padding="none">
+        <IconButton
+          onClick={fDelete}
+          className="delete"
+          title={t('delete')}
+          aria-label={t('delete')}>
+          <Delete />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+  )
+}
 
 export default Clients

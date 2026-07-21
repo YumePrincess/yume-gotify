@@ -37,6 +37,7 @@ import DefaultPage from '../common/DefaultPage'
 import { LastUsedCell } from '../common/LastUsedCell'
 import * as config from '../config'
 import { useStores } from '../stores'
+import { useI18n } from '../i18n'
 import { IApplication } from '../types'
 import { AddApplicationDialog } from './AddApplicationDialog'
 import { UpdateApplicationDialog } from './UpdateApplicationDialog'
@@ -63,6 +64,7 @@ const useStyles = makeStyles()((theme) => ({
 }))
 
 const Applications = observer(() => {
+  const { t } = useI18n()
   const { appStore } = useStores()
   const apps = appStore.getItems()
   const [toDeleteApp, setToDeleteApp] = useState<IApplication>()
@@ -107,14 +109,14 @@ const Applications = observer(() => {
 
   return (
     <DefaultPage
-      title="Applications"
+      title={t('applications')}
       rightControl={
         <Button
           id="create-app"
           variant="contained"
           color="primary"
           onClick={() => setCreateDialog(true)}>
-          Create Application
+          {t('createApplication')}
         </Button>
       }
       maxWidth={1000}>
@@ -129,11 +131,11 @@ const Applications = observer(() => {
                 <TableRow>
                   <TableCell padding="none" style={{ width: 0 }} />
                   <TableCell padding="checkbox" style={{ width: 80 }} />
-                  <TableCell>Name</TableCell>
-                  <TableCell>Token</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Priority</TableCell>
-                  <TableCell>Last Used</TableCell>
+                  <TableCell>{t('name')}</TableCell>
+                  <TableCell>{t('token')}</TableCell>
+                  <TableCell>{t('description')}</TableCell>
+                  <TableCell>{t('priority')}</TableCell>
+                  <TableCell>{t('lastUsed')}</TableCell>
                   <TableCell />
                   <TableCell />
                 </TableRow>
@@ -189,16 +191,16 @@ const Applications = observer(() => {
       )}
       {toDeleteApp != null && (
         <ConfirmDialog
-          title="Confirm Delete"
-          text={'Delete ' + toDeleteApp.name + '?'}
+          title={t('confirmDelete')}
+          text={t('deleteNamed', { name: toDeleteApp.name })}
           fClose={() => setToDeleteApp(undefined)}
           fOnSubmit={() => appStore.remove(toDeleteApp.id)}
         />
       )}
       {toDeleteImage != null && (
         <ConfirmDialog
-          title="Confirm Delete Image"
-          text={'Delete image for ' + toDeleteImage.name + '?'}
+          title={t('confirmDeleteImage')}
+          text={t('deleteImageFor', { name: toDeleteImage.name })}
           fClose={() => setToDeleteImage(undefined)}
           fOnSubmit={() => appStore.deleteImage(toDeleteImage.id)}
         />
@@ -217,6 +219,7 @@ interface IRowProps {
 
 const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
   const { classes } = useStyles()
+  const { t } = useI18n()
   const isDefaultImage = app.image === 'static/defaultapp.png'
 
   const {
@@ -254,20 +257,24 @@ const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
       </TableCell>
       <TableCell padding="normal">
         <div style={{ display: 'flex' }}>
-          <Tooltip title="Delete image" placement="top" arrow>
+          <Tooltip title={t('deleteImage')} placement="top" arrow>
             <ButtonBase
               className={classes.imageContainer}
               onClick={fDeleteImage}
               disabled={isDefaultImage}>
               <img
                 src={config.get('url') + app.image}
-                alt="app logo"
+                alt={t('applicationLogo', { name: app.name })}
                 width="40"
                 height="40"
               />
             </ButtonBase>
           </Tooltip>
-          <IconButton onClick={fUpload} style={{ height: 40 }}>
+          <IconButton
+            onClick={fUpload}
+            style={{ height: 40 }}
+            title={t('uploadImage')}
+            aria-label={t('uploadImage')}>
             <CloudUpload />
           </IconButton>
         </div>
@@ -285,7 +292,11 @@ const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
         <LastUsedCell lastUsed={app.lastUsed} />
       </TableCell>
       <TableCell align="right" padding="none">
-        <IconButton onClick={fEdit} className="edit">
+        <IconButton
+          onClick={fEdit}
+          className="edit"
+          title={t('edit')}
+          aria-label={t('edit')}>
           <Edit />
         </IconButton>
       </TableCell>
@@ -293,6 +304,8 @@ const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
         <IconButton
           onClick={fDelete}
           className="delete"
+          title={t('delete')}
+          aria-label={t('delete')}
           disabled={app.internal}>
           <Delete />
         </IconButton>

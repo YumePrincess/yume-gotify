@@ -1,5 +1,5 @@
 import { cloudflare } from '@cloudflare/vite-plugin'
-import babel from '@rolldown/plugin-babel'
+import babel, { defineRolldownBabelPreset } from '@rolldown/plugin-babel'
 import clientTokenCleanupPlugin from '@gotify/client-token-cleanup'
 import messageAutoDeletePlugin from '@gotify/message-auto-delete'
 import react from '@vitejs/plugin-react'
@@ -8,7 +8,7 @@ import { defineConfig } from 'vite'
 import generateLoadPlugin from './scripts/generate-load-plugin'
 
 function decoratorPreset(options: Record<string, unknown>) {
-  return {
+  return defineRolldownBabelPreset({
     preset: () => ({
       plugins: [['@babel/plugin-proposal-decorators', options]]
     }),
@@ -17,7 +17,7 @@ function decoratorPreset(options: Record<string, unknown>) {
         code: '@'
       }
     }
-  }
+  })
 }
 
 export default defineConfig({

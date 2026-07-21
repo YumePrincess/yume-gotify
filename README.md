@@ -44,6 +44,9 @@ belongs to the Gotify contributors.
 Requirements: Node.js 22.22+ and pnpm. The current dependency set uses Vite 8,
 React Router 8, TypeScript 7, and Wrangler 4.
 
+The committed `.node-version` pins Cloudflare Workers Builds to Node.js 22.22.0
+instead of the older build-image default.
+
 ```bash
 pnpm install
 pnpm dev

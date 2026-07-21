@@ -8,8 +8,11 @@ import { IUser } from '../types'
 import { translate } from '../i18n'
 
 export class UserStore extends BaseStore<IUser> {
-  constructor(private readonly snack: SnackReporter) {
+  private readonly snack: SnackReporter
+
+  constructor(snack: SnackReporter) {
     super()
+    this.snack = snack
   }
 
   protected requestItems = (): Promise<IUser[]> =>

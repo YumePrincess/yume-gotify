@@ -11,9 +11,11 @@ import { translate } from '../i18n'
 
 export class AppStore extends BaseStore<IApplication> {
   public onDelete: () => void = () => {}
+  private readonly snack: SnackReporter
 
-  public constructor(private readonly snack: SnackReporter) {
+  public constructor(snack: SnackReporter) {
     super()
+    this.snack = snack
   }
 
   protected requestItems = (): Promise<IApplication[]> =>

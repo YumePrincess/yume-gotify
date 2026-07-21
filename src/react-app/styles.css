@@ -187,7 +187,7 @@ button:active,
   left: 0;
   width: calc(100% - 20px);
   margin: 0 10px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--glass-border) !important;
   border-radius: var(--glass-radius-large) !important;
   background: var(--glass-tint) !important;
@@ -202,16 +202,121 @@ button:active,
   padding: 6px 14px;
 }
 
-.MuiAppBar-root.yume-app-bar .MuiButton-root,
-.MuiAppBar-root.yume-app-bar .MuiIconButton-root {
+.MuiAppBar-root.yume-app-bar
+  .yume-function-buttons
+  :is(.MuiButton-root, .MuiIconButton-root) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.MuiAppBar-root.yume-app-bar
+  .yume-function-buttons
+  :is(.MuiButton-root, .MuiIconButton-root):hover {
+  border-color: transparent !important;
+  background: var(--glass-control-tint) !important;
+  box-shadow: none !important;
+}
+
+.yume-preference-controls {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.yume-preference-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.yume-preference-control::after {
+  position: absolute;
+  top: 100%;
+  right: -8px;
+  width: min(220px, calc(100vw - 20px));
+  height: 12px;
+  content: '';
+}
+
+.MuiAppBar-root.yume-app-bar .yume-preference-button {
+  border-color: var(--glass-border);
   background: var(--glass-control-tint);
   box-shadow: var(--glass-control-shine);
 }
 
-.MuiAppBar-root.yume-app-bar .MuiButton-root:hover,
-.MuiAppBar-root.yume-app-bar .MuiIconButton-root:hover {
+.MuiAppBar-root.yume-app-bar .yume-preference-button:hover {
   border-color: var(--glass-border);
   background: var(--glass-hover);
+}
+
+.yume-preference-dropdown {
+  position: absolute;
+  z-index: 1500;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  min-width: 132px;
+  max-width: calc(100vw - 20px);
+  padding: 6px;
+  flex-direction: column;
+  overflow: hidden;
+  visibility: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--glass-radius);
+  opacity: 0;
+  background: var(--glass-tint);
+  box-shadow: var(--glass-shadow), var(--glass-shine);
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  pointer-events: none;
+  transform: translateY(5px) scale(0.98);
+  transform-origin: top right;
+  transition:
+    opacity 180ms ease,
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 180ms;
+}
+
+.yume-language-dropdown {
+  width: max-content;
+  min-width: 210px;
+}
+
+.yume-preference-control:hover .yume-preference-dropdown,
+.yume-preference-control.is-open .yume-preference-dropdown {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.yume-preference-option {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--glass-radius-control);
+  color: var(--site-text);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.yume-preference-option:hover,
+.yume-preference-option:focus-visible,
+.yume-preference-option.is-active {
+  background: var(--glass-hover);
+  box-shadow: var(--glass-menu-hover-shadow);
 }
 
 .MuiDrawer-docked .MuiDrawer-paper {

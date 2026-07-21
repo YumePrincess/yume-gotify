@@ -9,9 +9,11 @@ import { translate } from '../i18n'
 
 export class PluginStore extends BaseStore<IPlugin> {
   public onDelete: () => void = () => {}
+  private readonly snack: SnackReporter
 
-  public constructor(private readonly snack: SnackReporter) {
+  public constructor(snack: SnackReporter) {
     super()
+    this.snack = snack
   }
 
   public requestConfig = (id: number): Promise<string> =>

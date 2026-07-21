@@ -8,8 +8,11 @@ import { IClient } from '../types'
 import { translate } from '../i18n'
 
 export class ClientStore extends BaseStore<IClient> {
-  public constructor(private readonly snack: SnackReporter) {
+  private readonly snack: SnackReporter
+
+  public constructor(snack: SnackReporter) {
     super()
+    this.snack = snack
   }
 
   protected requestItems = (): Promise<IClient[]> =>

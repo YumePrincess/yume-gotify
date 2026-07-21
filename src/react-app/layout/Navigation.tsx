@@ -14,7 +14,7 @@ import Drawer from '@mui/material/Drawer'
 import { Theme } from '@mui/material/styles'
 import { observer } from 'mobx-react-lite'
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { makeStyles } from 'tss-react/mui'
 
 import {

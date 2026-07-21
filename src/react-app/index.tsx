@@ -75,4 +75,6 @@ const initStores = (): StoreMapping => {
     </StoreContext.Provider>
   )
   unregister()
-})().catch(() => {})
+})().catch((error) => {
+  console.error('Failed to initialize Yume Gotify:', error)
+})

@@ -8,7 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import { observer } from 'mobx-react-lite'
 import { SnackbarProvider } from 'notistack'
 import * as React from 'react'
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { HashRouter, Navigate, Route, Routes } from 'react-router'
 import { makeStyles } from 'tss-react/mui'
 
 import Applications from '../application/Applications'

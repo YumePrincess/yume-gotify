@@ -10,6 +10,7 @@ const defaultNotificationBody = 'New Gotify message'
 const previewWhitespacePattern =
   /[\s\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g
 const previewControlCharsPattern =
+  // oxlint-disable-next-line no-control-regex -- These explicit C0/DEL ranges intentionally exclude whitespace controls.
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g
 const textEncoder = new TextEncoder()
 

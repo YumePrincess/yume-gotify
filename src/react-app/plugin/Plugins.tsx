@@ -9,7 +9,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import { observer } from 'mobx-react-lite'
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 
 import CopyableSecret from '../common/CopyableSecret'
 import DefaultPage from '../common/DefaultPage'

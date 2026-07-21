@@ -32,14 +32,17 @@ belongs to the Gotify contributors.
 - Automatic, light, and dark themes
 - Cross-site Yume language and theme synchronization through shared `.yume.zone`
   preference cookies, with local-storage fallback
-- Responsive liquid-glass navigation, cards, tables, forms, menus, dialogs, and
-  mobile drawers
+- Flat functional navigation plus liquid-glass language and theme controls whose
+  dropdowns open inline on hover or click without a modal backdrop
+- Responsive rounded liquid-glass app bars, cards, tables, forms, menus,
+  dialogs, and mobile drawers
 - Configurable web background image through a Wrangler environment variable
 - Workspace-based plugin system
 
 ## Local development
 
-Requirements: Node.js and pnpm.
+Requirements: Node.js 22.22+ and pnpm. The current dependency set uses Vite 8,
+React Router 8, TypeScript 7, and Wrangler 4.
 
 ```bash
 pnpm install

@@ -37,6 +37,7 @@ belongs to the Gotify contributors.
 - Responsive rounded liquid-glass app bars, cards, tables, forms, menus,
   dialogs, and mobile drawers
 - Configurable web background image through a Wrangler environment variable
+- Configurable header Logo Bar image through a Wrangler environment variable
 - Workspace-based plugin system
 
 ## Local development
@@ -87,6 +88,22 @@ path:
 The Worker exposes this value through the no-cache `/config` endpoint. The web
 client validates it before applying it and falls back to
 `/static/yume-background.webp` when the value is empty, invalid, or unavailable.
+
+### Header Logo Bar
+
+Set `GOTIFY_LOGO_BAR_URL` to an absolute HTTP(S) URL or a site-relative path:
+
+```jsonc
+{
+  "vars": {
+    "GOTIFY_LOGO_BAR_URL": "https://cdn-public.yume.zone/public/img/yumegotify.png"
+  }
+}
+```
+
+The default is the official Yume Gotify Logo Bar at the URL in the example. The
+Worker publishes the value through `/config`; the web client validates it before
+replacing the bundled default.
 
 ### CORS origin
 

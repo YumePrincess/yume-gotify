@@ -149,7 +149,10 @@ app.get('/config', (c) => {
     },
     backgroundImageUrl:
       c.env.GOTIFY_BACKGROUND_IMAGE_URL?.trim() ||
-      '/static/yume-background.webp'
+      '/static/yume-background.webp',
+    logoBarUrl:
+      c.env.GOTIFY_LOGO_BAR_URL?.trim() ||
+      'https://cdn-public.yume.zone/public/img/yumegotify.png'
   })
 })
 

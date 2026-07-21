@@ -15,11 +15,11 @@ import Button, { ButtonProps } from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import { Theme } from '@mui/material/styles'
 import Toolbar from '@mui/material/Toolbar'
-import Typography from '@mui/material/Typography'
 import React, { CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { makeStyles } from 'tss-react/mui'
 
+import * as config from '../config'
 import { useI18n } from '../i18n'
 import { LanguageChoice, ThemeChoice } from '../preferences'
 
@@ -63,12 +63,11 @@ const useStyles = makeStyles()((theme: Theme) => ({
     },
     display: 'flex',
     alignItems: 'center',
-    minWidth: 190
-  },
-  titleName: {
-    paddingRight: 10,
-    fontWeight: 720,
-    letterSpacing: '-0.025em'
+    minWidth: 300,
+    gap: 6,
+    [theme.breakpoints.down('sm')]: {
+      minWidth: 0
+    }
   },
   link: {
     color: 'inherit',
@@ -106,6 +105,7 @@ const Header = ({
     'language' | 'theme' | null
   >(null)
   const preferenceControls = React.useRef<HTMLDivElement>(null)
+  const preferenceCloseTimer = React.useRef<number | null>(null)
   const themeLabel = t('theme')
   const themeIcon = themeIcons[themeMode]
   const languageOptions: Array<[LanguageChoice, string]> = [
@@ -121,6 +121,24 @@ const Header = ({
     ['dark', t('themeDark')],
     ['light', t('themeLight')]
   ]
+
+  const openPreferenceMenu = (preference: 'language' | 'theme') => {
+    if (preferenceCloseTimer.current !== null) {
+      window.clearTimeout(preferenceCloseTimer.current)
+      preferenceCloseTimer.current = null
+    }
+    setOpenPreference(preference)
+  }
+
+  const schedulePreferenceClose = (preference: 'language' | 'theme') => {
+    if (preferenceCloseTimer.current !== null) {
+      window.clearTimeout(preferenceCloseTimer.current)
+    }
+    preferenceCloseTimer.current = window.setTimeout(() => {
+      setOpenPreference((current) => (current === preference ? null : current))
+      preferenceCloseTimer.current = null
+    }, 120)
+  }
 
   React.useEffect(() => {
     const closeOnOutsidePointer = (event: PointerEvent) => {
@@ -140,6 +158,9 @@ const Header = ({
     return () => {
       document.removeEventListener('pointerdown', closeOnOutsidePointer)
       document.removeEventListener('keydown', closeOnEscape)
+      if (preferenceCloseTimer.current !== null) {
+        window.clearTimeout(preferenceCloseTimer.current)
+      }
     }
   }, [])
 
@@ -150,23 +171,126 @@ const Header = ({
       className={`${classes.appBar} yume-app-bar`}>
       <Toolbar className={classes.toolbar}>
         <div className={classes.title}>
-          <Link to="/" className={classes.link}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img
-                className="yume-brand-logo"
-                src="static/yume-logo.png"
-                alt=""
-                width="42"
-                height="42"
-              />
-              <Typography
-                variant="h5"
-                className={classes.titleName}
-                color="inherit">
-                {t('brand')}
-              </Typography>
-            </span>
+          <Link
+            to="/"
+            className={`${classes.link} yume-logo-bar-link`}
+            aria-label={t('brand')}>
+            <img
+              className="yume-logo-bar"
+              src={config.get('logoBarUrl')}
+              alt={t('brand')}
+              width="176"
+              height="44"
+            />
           </Link>
+          <div className="yume-preference-controls" ref={preferenceControls}>
+            <div
+              className={`yume-preference-control yume-preference-control--language${
+                openPreference === 'language' ? ' is-open' : ''
+              }`}
+              onPointerEnter={() => openPreferenceMenu('language')}
+              onPointerLeave={() => schedulePreferenceClose('language')}
+              onFocusCapture={() => openPreferenceMenu('language')}
+              onBlur={(event) => {
+                if (
+                  !event.currentTarget.contains(event.relatedTarget as Node)
+                ) {
+                  setOpenPreference((current) =>
+                    current === 'language' ? null : current
+                  )
+                }
+              }}>
+              <IconButton
+                className="yume-preference-button"
+                onClick={() => openPreferenceMenu('language')}
+                color="inherit"
+                size="large"
+                title={t('language')}
+                aria-label={t('language')}
+                aria-haspopup="menu"
+                aria-controls="yume-language-menu"
+                aria-expanded={openPreference === 'language'}>
+                <LanguageIcon />
+              </IconButton>
+              <div
+                id="yume-language-menu"
+                className="yume-preference-dropdown yume-language-dropdown"
+                role="menu"
+                aria-label={t('language')}>
+                {languageOptions.map(([choice, label]) => (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={choice === languageChoice}
+                    tabIndex={openPreference === 'language' ? 0 : -1}
+                    className={`yume-preference-option${
+                      choice === languageChoice ? ' is-active' : ''
+                    }`}
+                    key={choice}
+                    lang={choice === 'auto' ? undefined : choice}
+                    onClick={() => {
+                      setLanguageChoice(choice)
+                      setOpenPreference(null)
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className={`yume-preference-control yume-preference-control--theme${
+                openPreference === 'theme' ? ' is-open' : ''
+              }`}
+              onPointerEnter={() => openPreferenceMenu('theme')}
+              onPointerLeave={() => schedulePreferenceClose('theme')}
+              onFocusCapture={() => openPreferenceMenu('theme')}
+              onBlur={(event) => {
+                if (
+                  !event.currentTarget.contains(event.relatedTarget as Node)
+                ) {
+                  setOpenPreference((current) =>
+                    current === 'theme' ? null : current
+                  )
+                }
+              }}>
+              <IconButton
+                className="yume-preference-button"
+                onClick={() => openPreferenceMenu('theme')}
+                color="inherit"
+                size="large"
+                title={themeLabel}
+                aria-label={themeLabel}
+                aria-haspopup="menu"
+                aria-controls="yume-theme-menu"
+                aria-expanded={openPreference === 'theme'}>
+                {themeIcon}
+              </IconButton>
+              <div
+                id="yume-theme-menu"
+                className="yume-preference-dropdown yume-theme-dropdown"
+                role="menu"
+                aria-label={themeLabel}>
+                {themeOptions.map(([choice, label]) => (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={choice === themeMode}
+                    tabIndex={openPreference === 'theme' ? 0 : -1}
+                    className={`yume-preference-option${
+                      choice === themeMode ? ' is-active' : ''
+                    }`}
+                    key={choice}
+                    onClick={() => {
+                      setThemeMode(choice)
+                      setOpenPreference(null)
+                    }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         {loggedIn && (
           <Buttons
@@ -177,112 +301,6 @@ const Header = ({
             showSettings={showSettings}
           />
         )}
-        <div className="yume-preference-controls" ref={preferenceControls}>
-          <div
-            className={`yume-preference-control yume-preference-control--language${
-              openPreference === 'language' ? ' is-open' : ''
-            }`}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-                setOpenPreference((current) =>
-                  current === 'language' ? null : current
-                )
-              }
-            }}>
-            <IconButton
-              className="yume-preference-button"
-              onClick={() =>
-                setOpenPreference((current) =>
-                  current === 'language' ? null : 'language'
-                )
-              }
-              color="inherit"
-              size="large"
-              title={t('language')}
-              aria-label={t('language')}
-              aria-haspopup="menu"
-              aria-controls="yume-language-menu"
-              aria-expanded={openPreference === 'language'}>
-              <LanguageIcon />
-            </IconButton>
-            <div
-              id="yume-language-menu"
-              className="yume-preference-dropdown yume-language-dropdown"
-              role="menu"
-              aria-label={t('language')}>
-              {languageOptions.map(([choice, label]) => (
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={choice === languageChoice}
-                  tabIndex={openPreference === 'language' ? 0 : -1}
-                  className={`yume-preference-option${
-                    choice === languageChoice ? ' is-active' : ''
-                  }`}
-                  key={choice}
-                  lang={choice === 'auto' ? undefined : choice}
-                  onClick={() => {
-                    setLanguageChoice(choice)
-                    setOpenPreference(null)
-                  }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={`yume-preference-control yume-preference-control--theme${
-              openPreference === 'theme' ? ' is-open' : ''
-            }`}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node)) {
-                setOpenPreference((current) =>
-                  current === 'theme' ? null : current
-                )
-              }
-            }}>
-            <IconButton
-              className="yume-preference-button"
-              onClick={() =>
-                setOpenPreference((current) =>
-                  current === 'theme' ? null : 'theme'
-                )
-              }
-              color="inherit"
-              size="large"
-              title={themeLabel}
-              aria-label={themeLabel}
-              aria-haspopup="menu"
-              aria-controls="yume-theme-menu"
-              aria-expanded={openPreference === 'theme'}>
-              {themeIcon}
-            </IconButton>
-            <div
-              id="yume-theme-menu"
-              className="yume-preference-dropdown yume-theme-dropdown"
-              role="menu"
-              aria-label={themeLabel}>
-              {themeOptions.map(([choice, label]) => (
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={choice === themeMode}
-                  tabIndex={openPreference === 'theme' ? 0 : -1}
-                  className={`yume-preference-option${
-                    choice === themeMode ? ' is-active' : ''
-                  }`}
-                  key={choice}
-                  onClick={() => {
-                    setThemeMode(choice)
-                    setOpenPreference(null)
-                  }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
       </Toolbar>
     </AppBar>
   )

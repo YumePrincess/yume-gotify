@@ -5,6 +5,7 @@ export interface IConfig {
   register: boolean
   version: IVersion
   backgroundImageUrl: string
+  logoBarUrl: string
 }
 
 declare global {
@@ -18,6 +19,7 @@ const config: IConfig = {
   register: false,
   version: { commit: 'unknown', buildDate: 'unknown', version: 'unknown' },
   backgroundImageUrl: '/static/yume-background.webp',
+  logoBarUrl: 'https://cdn-public.yume.zone/public/img/yumegotify.png',
   ...window.config
 }
 
@@ -30,7 +32,7 @@ const validVersion = (value: unknown): value is IVersion =>
   typeof value.commit === 'string' &&
   typeof value.buildDate === 'string'
 
-const validBackgroundImageUrl = (value: unknown): value is string => {
+const validAssetUrl = (value: unknown): value is string => {
   if (typeof value !== 'string' || value.trim() === '') {
     return false
   }
@@ -64,8 +66,11 @@ export async function loadRuntimeConfig(): Promise<void> {
     if (validVersion(payload.version)) {
       config.version = payload.version
     }
-    if (validBackgroundImageUrl(payload.backgroundImageUrl)) {
+    if (validAssetUrl(payload.backgroundImageUrl)) {
       config.backgroundImageUrl = payload.backgroundImageUrl.trim()
+    }
+    if (validAssetUrl(payload.logoBarUrl)) {
+      config.logoBarUrl = payload.logoBarUrl.trim()
     }
   } catch {
     // Keep the bundled defaults when runtime configuration is unavailable.

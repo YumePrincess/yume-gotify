@@ -163,9 +163,16 @@ button:active,
   outline-offset: 2px;
 }
 
-.yume-brand-logo {
-  width: 42px;
-  height: 42px;
+.yume-logo-bar-link {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.yume-logo-bar {
+  display: block;
+  width: 176px;
+  height: auto;
   object-fit: contain;
   filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.2));
 }
@@ -237,9 +244,9 @@ button:active,
 .yume-preference-control::after {
   position: absolute;
   top: 100%;
-  right: -8px;
-  width: min(220px, calc(100vw - 20px));
-  height: 12px;
+  left: 0;
+  width: 100%;
+  height: 10px;
   content: '';
 }
 
@@ -258,7 +265,7 @@ button:active,
   position: absolute;
   z-index: 1500;
   top: calc(100% + 8px);
-  right: 0;
+  left: 50%;
   display: flex;
   min-width: 132px;
   max-width: calc(100vw - 20px);
@@ -274,8 +281,8 @@ button:active,
   backdrop-filter: var(--glass-backdrop);
   -webkit-backdrop-filter: var(--glass-backdrop);
   pointer-events: none;
-  transform: translateY(5px) scale(0.98);
-  transform-origin: top right;
+  transform: translate(-50%, 5px) scale(0.98);
+  transform-origin: top center;
   transition:
     opacity 180ms ease,
     transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -287,12 +294,11 @@ button:active,
   min-width: 210px;
 }
 
-.yume-preference-control:hover .yume-preference-dropdown,
 .yume-preference-control.is-open .yume-preference-dropdown {
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translate(-50%, 0) scale(1);
 }
 
 .yume-preference-option {
@@ -548,9 +554,8 @@ button:active,
     background-attachment: scroll;
   }
 
-  .yume-brand-logo {
-    width: 36px;
-    height: 36px;
+  .yume-logo-bar {
+    width: 144px;
   }
 
   .MuiAppBar-root.yume-app-bar {

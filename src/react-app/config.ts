@@ -19,7 +19,7 @@ const config: IConfig = {
   register: false,
   version: { commit: 'unknown', buildDate: 'unknown', version: 'unknown' },
   backgroundImageUrl: '/static/yume-background.webp',
-  logoBarUrl: 'https://cdn-public.yume.zone/public/img/yumegotify.png',
+  logoBarUrl: 'https://www.yume.zone/assets/img/yumegotify.png',
   ...window.config
 }
 

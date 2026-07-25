@@ -12,6 +12,8 @@ import type {
 const tokenCharacters =
   'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_'
 const randomTokenLength = 14
+const defaultAppImagesPrefix = 'gotify/'
+const appImageNamePattern = /^[A-Za-z0-9._-]+$/
 
 export class ApiError extends Error {
   constructor(
@@ -228,6 +230,33 @@ export function generateSortKey(): string {
 
 export function generateImageName(extension: string): string {
   return `${generateRandomString(25)}${extension}`
+}
+
+export function normalizeBucketObjectPrefix(
+  value: string | undefined,
+  fallback = defaultAppImagesPrefix
+): string {
+  const normalized = (value ?? fallback).trim().replace(/^\/+|\/+$/g, '')
+  if (normalized === '') {
+    const fallbackNormalized = fallback.trim().replace(/^\/+|\/+$/g, '')
+    return fallbackNormalized === '' ? '' : `${fallbackNormalized}/`
+  }
+  return `${normalized}/`
+}
+
+export function parseStoredAppImageName(key: string): string {
+  const normalized = key.trim()
+  if (normalized === '' || !appImageNamePattern.test(normalized)) {
+    throw new ApiError(404, 'image does not exist')
+  }
+  return normalized
+}
+
+export function buildAppImageObjectKey(
+  prefix: string | undefined,
+  imageName: string
+): string {
+  return `${normalizeBucketObjectPrefix(prefix)}${parseStoredAppImageName(imageName)}`
 }
 
 export function isOlderThan(lastUsed: string | null, ms: number): boolean {

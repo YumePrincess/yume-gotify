@@ -96,7 +96,7 @@ Set `GOTIFY_LOGO_BAR_URL` to an absolute HTTP(S) URL or a site-relative path:
 ```jsonc
 {
   "vars": {
-    "GOTIFY_LOGO_BAR_URL": "https://cdn-public.yume.zone/public/img/yumegotify.png"
+    "GOTIFY_LOGO_BAR_URL": "https://www.yume.zone/assets/img/yumegotify.png"
   }
 }
 ```

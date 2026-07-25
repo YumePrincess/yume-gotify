@@ -58,6 +58,7 @@ import {
   ApiError,
   boolFromEnv,
   buildNextUrl,
+  buildAppImageObjectKey,
   contentTypeFromExtension,
   corsHeaders,
   generateImageName,
@@ -152,7 +153,7 @@ app.get('/config', (c) => {
       '/static/yume-background.webp',
     logoBarUrl:
       c.env.GOTIFY_LOGO_BAR_URL?.trim() ||
-      'https://cdn-public.yume.zone/public/img/yumegotify.png'
+      'https://www.yume.zone/assets/img/yumegotify.png'
   })
 })
 
@@ -168,7 +169,10 @@ app.get('/image/:key', async (c) => {
   if (!c.env.APP_IMAGES) {
     throw new ApiError(404, 'image storage is not configured')
   }
-  const key = c.req.param('key')
+  const key = buildAppImageObjectKey(
+    c.env.APP_IMAGES_PREFIX,
+    c.req.param('key')
+  )
   const object = await c.env.APP_IMAGES.get(key)
   if (!object) {
     throw new ApiError(404, 'image does not exist')
@@ -286,7 +290,11 @@ app.delete('/user/:id', requireAdmin, async (c) => {
     await Promise.all(
       apps
         .filter((appRow) => appRow.image)
-        .map((appRow) => c.env.APP_IMAGES!.delete(appRow.image))
+        .map((appRow) =>
+          c.env.APP_IMAGES!.delete(
+            buildAppImageObjectKey(c.env.APP_IMAGES_PREFIX, appRow.image)
+          )
+        )
     )
   }
   await deleteUser(c.env.DB, id)
@@ -432,7 +440,9 @@ app.delete('/application/:id', requireClient, async (c) => {
     throw new ApiError(400, 'cannot delete internal application')
   }
   if (appRow.image && c.env.APP_IMAGES) {
-    await c.env.APP_IMAGES.delete(appRow.image)
+    await c.env.APP_IMAGES.delete(
+      buildAppImageObjectKey(c.env.APP_IMAGES_PREFIX, appRow.image)
+    )
   }
   await deleteApplication(c.env.DB, id)
   return new Response(null, { status: 200 })
@@ -470,14 +480,17 @@ app.post('/application/:id/image', requireClient, async (c) => {
   }
 
   const imageName = generateImageName(extension)
-  await c.env.APP_IMAGES.put(imageName, bytes, {
+  const objectKey = buildAppImageObjectKey(c.env.APP_IMAGES_PREFIX, imageName)
+  await c.env.APP_IMAGES.put(objectKey, bytes, {
     httpMetadata: {
       contentType: uploaded.type || contentTypeFromExtension(extension)
     }
   })
 
   if (appRow.image) {
-    await c.env.APP_IMAGES.delete(appRow.image)
+    await c.env.APP_IMAGES.delete(
+      buildAppImageObjectKey(c.env.APP_IMAGES_PREFIX, appRow.image)
+    )
   }
 
   const updated = await updateApplication(c.env.DB, {
@@ -509,7 +522,12 @@ app.delete('/application/:id/image', requireClient, async (c) => {
     )
   }
 
-  await c.env.APP_IMAGES.delete(appRow.image)
+  await c.env.APP_IMAGES.delete(
+    buildAppImageObjectKey(
+      c.env.APP_IMAGES_PREFIX,
+      appRow.image
+    )
+  )
   const updated = await updateApplication(c.env.DB, {
     id: appRow.id,
     name: appRow.name,

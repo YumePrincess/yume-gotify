@@ -108,6 +108,10 @@ the assistant contract without confusing it with the Gotify server version:
 
 Keep the two values separate when upgrading either component.
 
+The `assets.run_worker_first` rule routes `/auth/oidc/*` through the Worker
+before the SPA fallback. This is required for browser OIDC redirects and the
+OIDC callback; otherwise Cloudflare can serve `index.html` at the OAuth URL.
+
 ### Gotify 3 authentication
 
 Browser login is implemented by `POST /auth/local/login` with HTTP Basic

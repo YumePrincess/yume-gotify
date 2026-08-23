@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer'
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildIgotifySecNtfyPayload,
   encryptForIgotifyDevice,
   normalizeIgotifyPreviewText
 } from '../src/worker/igotify-secntfy'
@@ -27,5 +28,29 @@ describe('normalizeIgotifyPreviewText', () => {
   it('encrypts preview text into an RSA-sized SecNtfy ciphertext', () => {
     const encrypted = encryptForIgotifyDevice(publicKey, 'visible message')
     expect(Buffer.from(encrypted, 'base64')).toHaveLength(128)
+  })
+
+  it('uses the exact secntfy.nuget 1.0.9 notification shape', () => {
+    const payload = buildIgotifySecNtfyPayload(publicKey, {
+      deviceToken: 'NTFY-DEVICE-test',
+      title: 'Title',
+      body: 'Visible message',
+      critical: false,
+      imageUrl: '',
+      priority: 5
+    })
+
+    expect(payload.notification).toEqual({
+      critical: false,
+      priority: 5,
+      mutablecontent: 1,
+      sound: {
+        name: 'default',
+        volume: 1
+      }
+    })
+    expect(payload.notification).not.toHaveProperty('mutableContent')
+    expect(payload.notification).not.toHaveProperty('mutable-content')
+    expect(Buffer.from(payload.body, 'base64')).toHaveLength(128)
   })
 })

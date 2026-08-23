@@ -98,7 +98,7 @@ export function buildNextUrl(
   const next = new URL(currentUrl)
   next.searchParams.set('limit', String(limit))
   next.searchParams.set('since', String(since))
-  return next.toString()
+  return `${next.pathname}${next.search}${next.hash}`
 }
 
 export function parseJsonObject<T>(input: unknown): T {

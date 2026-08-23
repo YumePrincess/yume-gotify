@@ -23,13 +23,28 @@ interface SecNtfyDeviceResponse {
   status?: number
 }
 
-interface SendNotificationInput {
+export interface IgotifySecNtfyNotificationInput {
   deviceToken: string
   title: string
   body: string
   critical?: boolean
   imageUrl?: string
   priority?: number
+}
+
+export interface IgotifySecNtfyNotificationPayload {
+  title: string
+  body: string
+  image: string
+  notification: {
+    critical: boolean
+    priority: number
+    mutablecontent: number
+    sound: {
+      name: string
+      volume: number
+    }
+  }
 }
 
 interface DerElement {
@@ -100,7 +115,7 @@ export function normalizeIgotifyPreviewText(value: string): string {
     .trim()
 }
 
-function notificationText(input: SendNotificationInput): {
+function notificationText(input: IgotifySecNtfyNotificationInput): {
   title: string
   body: string
 } {
@@ -326,6 +341,36 @@ export function encryptForIgotifyDevice(
     : new Error('Failed to encrypt SecNtfy payload')
 }
 
+/**
+ * Build the payload expected by secntfy.nuget 1.0.9.
+ *
+ * The lowercase `mutablecontent` name is intentional: it is the property
+ * name used by the current SecNtfyNotification model. Keeping the payload
+ * exact prevents the iOS notification service extension from ignoring the
+ * decrypted body and falling back to "open the app to view".
+ */
+export function buildIgotifySecNtfyPayload(
+  publicKey: string,
+  input: IgotifySecNtfyNotificationInput
+): IgotifySecNtfyNotificationPayload {
+  const { title, body } = notificationText(input)
+
+  return {
+    title: encryptForIgotifyDevice(publicKey, title),
+    body: encryptForIgotifyDevice(publicKey, body),
+    image: encryptForIgotifyDevice(publicKey, input.imageUrl ?? ''),
+    notification: {
+      critical: input.critical ?? false,
+      priority: input.priority ?? 0,
+      mutablecontent: 1,
+      sound: {
+        name: 'default',
+        volume: 1
+      }
+    }
+  }
+}
+
 export async function getIgotifyPublicKeyFromDevice(
   env: EnvBindings,
   deviceToken: string
@@ -352,7 +397,7 @@ export async function getIgotifyPublicKeyFromDevice(
 
 export async function sendIgotifySecNtfyNotification(
   env: EnvBindings,
-  input: SendNotificationInput
+  input: IgotifySecNtfyNotificationInput
 ): Promise<IgotifySecNtfyResult | null> {
   if (!input.deviceToken.includes(deviceTokenPrefix)) {
     return {
@@ -363,23 +408,7 @@ export async function sendIgotifySecNtfyNotification(
   }
 
   const publicKey = await getIgotifyPublicKeyFromDevice(env, input.deviceToken)
-  const { title, body } = notificationText(input)
-  const payload = {
-    title: encryptForIgotifyDevice(publicKey, title),
-    body: encryptForIgotifyDevice(publicKey, body),
-    image: encryptForIgotifyDevice(publicKey, input.imageUrl ?? ''),
-    notification: {
-      mutablecontent: 1,
-      mutableContent: 1,
-      'mutable-content': 1,
-      critical: input.critical ?? false,
-      priority: input.priority ?? 0,
-      sound: {
-        name: 'default',
-        volume: 1
-      }
-    }
-  }
+  const payload = buildIgotifySecNtfyPayload(publicKey, input)
 
   const response = await fetch(`${secNtfyUrl(env)}/Message`, {
     method: 'POST',

@@ -96,6 +96,18 @@ function methodNotAllowed(): Response {
   )
 }
 
+export function getIgotifyVersionResponse(env: EnvBindings): {
+  version: string
+  buildDate: string
+  commit: string
+} {
+  return {
+    version: env.IGOTIFY_VERSION ?? 'worker-dev',
+    buildDate: env.IGOTIFY_BUILD_DATE ?? 'unknown',
+    commit: env.IGOTIFY_COMMIT ?? 'unknown'
+  }
+}
+
 function isResponse(value: unknown): value is Response {
   return value instanceof Response
 }
@@ -375,7 +387,7 @@ function handleRealtime(env: EnvBindings): Response {
     enabled: true,
     mode: 'integrated',
     poller: false,
-    version: env.IGOTIFY_VERSION ?? env.GOTIFY_VERSION ?? 'worker-dev'
+    version: getIgotifyVersionResponse(env).version
   })
 }
 
@@ -388,15 +400,11 @@ export async function maybeHandleIgotifyRequest(
   const lowerPath = path.toLowerCase()
 
   try {
-    if (lowerPath === '/api/version' && request.method === 'GET') {
-      return json({
-        version: env.IGOTIFY_VERSION ?? env.GOTIFY_VERSION ?? 'worker-dev',
-        buildDate:
-          env.IGOTIFY_BUILD_DATE ??
-          env.GOTIFY_BUILD_DATE ??
-          new Date().toISOString(),
-        commit: env.GOTIFY_COMMIT ?? ''
-      })
+    if (
+      (lowerPath === '/api/version' || path === '/Version') &&
+      request.method === 'GET'
+    ) {
+      return json(getIgotifyVersionResponse(env))
     }
 
     if (

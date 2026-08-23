@@ -49,6 +49,7 @@ import {
 import {
   deliverIgotifyMessage,
   deliverPendingIgotifyMessages,
+  getIgotifyVersionResponse,
   maybeHandleIgotifyRequest
 } from './igotify'
 import { ensureMigrations } from './migrations'
@@ -162,6 +163,21 @@ app.get('/version', (c) =>
     version: c.env.GOTIFY_VERSION ?? 'worker-dev',
     commit: c.env.GOTIFY_COMMIT ?? 'unknown',
     buildDate: c.env.GOTIFY_BUILD_DATE ?? new Date().toISOString()
+  })
+)
+
+// iGotify Notification Assistant 1.6.x probes the ASP.NET-style root route.
+// Keep Gotify's lowercase /version route unchanged for the web client/API.
+app.get('/Version', (c) => c.json(getIgotifyVersionResponse(c.env)))
+
+app.get('/gotifyinfo', (c) =>
+  c.json({
+    version: c.env.GOTIFY_VERSION ?? 'worker-dev',
+    register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
+    localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
+    oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC',
+    oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false)
   })
 )
 

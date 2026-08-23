@@ -417,7 +417,7 @@ export async function createApplication(
   const result = await run(
     db,
     `INSERT INTO applications
-      (token, user_id, name, description, internal, image, default_priority, last_used, sort_key)
+      (token, user_id, name, description, internal, image, default_priority, last_used, sort_key, created_at)
       VALUES (?, ?, ?, ?, 0, '', ?, NULL, ?, ?)`,
     tokens.publicToken,
     input.userId,

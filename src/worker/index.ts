@@ -214,11 +214,16 @@ app.post('/auth/logout', requireClient, async (c) => {
     throw new ApiError(403, 'no client auth provided')
   }
   await deleteClient(c.env.DB, client.id)
-  c.header(
-    'Set-Cookie',
-    gotifyClientCookie('', boolFromEnv(c.env.GOTIFY_SERVER_SECURECOOKIE, true), -1)
-  )
-  return new Response(null, { status: 200 })
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Set-Cookie': gotifyClientCookie(
+        '',
+        boolFromEnv(c.env.GOTIFY_SERVER_SECURECOOKIE, true),
+        -1
+      )
+    }
+  })
 })
 
 app.get('/version', (c) =>

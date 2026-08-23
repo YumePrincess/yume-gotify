@@ -104,19 +104,15 @@ export async function getIgotifyDeviceByToken(
   return row ? mapDevice(row) : null
 }
 
-export async function igotifyDeviceExists(
-  db: D1Database,
-  clientToken: string
-): Promise<boolean> {
-  const row = await first<{ uid: number }>(
-    db,
-    'SELECT uid FROM igotify_devices WHERE client_token = ? LIMIT 1',
-    clientToken
-  )
-  return row !== null
-}
-
-export async function insertIgotifyDevice(
+/**
+ * Register or refresh the device associated with a Gotify client.
+ *
+ * iGotify may rotate its SecNtfy device token or public key after an app
+ * update. Treating the client token as an immutable registration leaves the
+ * Worker encrypting notifications for the old device key, which makes the
+ * iOS extension show its generic fallback text instead of the message.
+ */
+export async function upsertIgotifyDevice(
   db: D1Database,
   registration: IgotifyValidatedDeviceRegistration,
   lastMessageId: number
@@ -125,7 +121,13 @@ export async function insertIgotifyDevice(
     db,
     `INSERT INTO igotify_devices
       (client_token, device_token, gotify_url, headers, last_message_id)
-     VALUES (?, ?, ?, '[]', ?)`,
+     VALUES (?, ?, ?, '[]', ?)
+     ON CONFLICT(client_token) DO UPDATE SET
+       device_token = excluded.device_token,
+       gotify_url = excluded.gotify_url,
+       disabled_at = NULL,
+       disabled_reason = NULL,
+       updated_at = CURRENT_TIMESTAMP`,
     registration.clientToken,
     registration.deviceToken,
     registration.gotifyUrl,

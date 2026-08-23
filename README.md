@@ -25,12 +25,11 @@ belongs to the Gotify contributors.
 
 - Gotify-compatible applications, clients, messages, users, and WebSocket
   streams
-- Gotify 3 session-cookie authentication with HttpOnly, SameSite, Secure
-  cookies
+- Gotify 3 session-cookie authentication with HttpOnly, SameSite, Secure cookies
 - Gotify 3 enhanced Ed25519 application/client tokens (`gtfya.` and `gtfyc.`)
   with private tokens returned only when a resource is created
-- OIDC browser login, native PKCE login, OIDC account linking, auto-registration,
-  and OIDC session elevation
+- OIDC browser login, native PKCE login, OIDC account linking,
+  auto-registration, and OIDC session elevation
 - iGotify Notification Assistant 1.6.0.0 integration, including `/Version`,
   device registration, realtime notification forwarding, and SecNtfy preview
   payloads
@@ -70,14 +69,14 @@ pnpm run build
 pnpm run cf-typegen
 ```
 
-Run `pnpm run cf-typegen` whenever a binding, `vars`, or `secrets.required` entry changes in
-`wrangler.jsonc`. It regenerates `worker-configuration.d.ts` from the active
-Wrangler configuration.
+Run `pnpm run cf-typegen` whenever a binding, `vars`, or `secrets.required`
+entry changes in `wrangler.jsonc`. It regenerates `worker-configuration.d.ts`
+from the active Wrangler configuration.
 
 ## Runtime configuration
 
-Non-secret settings are defined in the `vars` object in `wrangler.jsonc`.
-The current configuration declares `GOTIFY_DEFAULTUSER_PASS` and
+Non-secret settings are defined in the `vars` object in `wrangler.jsonc`. The
+current configuration declares `GOTIFY_DEFAULTUSER_PASS` and
 `GOTIFY_OIDC_CLIENTSECRET` as required Wrangler secrets. They must not be put in
 `vars` or committed to the repository.
 
@@ -101,10 +100,10 @@ login and OIDC are both available. Set it to `false` while keeping
 The Worker exposes the versions independently so the iGotify client can verify
 the assistant contract without confusing it with the Gotify server version:
 
-| Component | Runtime value | Endpoint |
-| --- | --- | --- |
-| Gotify server | `3.0.0` | `/version` |
-| iGotify Notification Assistant | `1.6.0.0` | `/Version` and `/api/version` |
+| Component                      | Runtime value | Endpoint                      |
+| ------------------------------ | ------------- | ----------------------------- |
+| Gotify server                  | `3.0.0`       | `/version`                    |
+| iGotify Notification Assistant | `1.6.0.0`     | `/Version` and `/api/version` |
 
 Keep the two values separate when upgrading either component.
 
@@ -116,15 +115,14 @@ redirects/callbacks are not replaced by `index.html`.
 ### Gotify 3 authentication
 
 Browser login is implemented by `POST /auth/local/login` with HTTP Basic
-credentials and a form field named `name`. The Worker returns a Gotify 3
-session cookie; the React client never stores an access token in local storage.
-Logout uses `POST /auth/logout` and deletes the session client.
+credentials and a form field named `name`. The Worker returns a Gotify 3 session
+cookie; the React client never stores an access token in local storage. Logout
+uses `POST /auth/logout` and deletes the session client.
 
 `GET /client` and `GET /application` intentionally return no access tokens.
 `POST /client` and `POST /application` return the newly generated private token
-once. Applications send messages through the authenticated web session using
-the `appid` field; external senders use their private `gtfya.` application
-token.
+once. Applications send messages through the authenticated web session using the
+`appid` field; external senders use their private `gtfya.` application token.
 
 Existing pre-3.x `A...`/`C...` tokens are not migrated or accepted. Create new
 Gotify 3 clients and applications after upgrading.
@@ -154,15 +152,30 @@ production placeholders currently used by this project):
 }
 ```
 
-The browser flow uses `/auth/oidc/login` and `/auth/oidc/callback`. Native
-clients use the PKCE endpoints:
+The browser flow uses `/auth/oidc/login` and `/auth/oidc/callback`. Register the
+following two exact redirect URIs in the OIDC provider's client configuration:
+
+```text
+https://gotify.yume.zone/auth/oidc/callback
+gotify://oidc/callback
+```
+
+The HTTPS URI is for the web login. The `gotify://` URI is for iGotify's native
+PKCE login. Keep both entries; do not replace the HTTPS value in
+`GOTIFY_OIDC_REDIRECTURL` with the custom-scheme URI. Native clients use these
+PKCE endpoints:
 
 - `POST /auth/oidc/external/authorize`
 - `POST /auth/oidc/external/token`
 
-The native redirect URI should be `gotify://oidc/callback`, matching the Gotify
-3 client contract. Both flows validate the issuer, audience, nonce, expiry,
-JWKS signature, and PKCE verifier before creating a client session.
+The native redirect URI is `gotify://oidc/callback`, matching the Gotify 3
+client contract. Both flows validate the issuer, audience, nonce, expiry, JWKS
+signature, and PKCE verifier before creating a client session.
+
+When iGotify registers a device again after an app update, the Worker refreshes
+the existing registration's SecNtfy device token and public-key association
+instead of rejecting the same Gotify client token. This prevents iOS from
+falling back to its generic “Please tap here to see the message.” preview.
 
 The configured username claim is tried first. If it is empty, the Worker falls
 back to `preferred_username`, `email`, `name`, and `nickname` so providers with

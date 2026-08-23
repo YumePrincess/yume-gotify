@@ -8,11 +8,10 @@ import {
   deleteIgotifyDevice,
   disableIgotifyDevice,
   getIgotifyDeviceByToken,
-  igotifyDeviceExists,
-  insertIgotifyDevice,
   listIgotifyDevices,
   releaseIgotifyNotificationDelivery,
   reserveIgotifyNotificationDelivery,
+  upsertIgotifyDevice,
   updateIgotifyHeaders,
   updateIgotifyLastMessageId
 } from './igotify-db'
@@ -279,22 +278,18 @@ async function handleDevicePost(
     return registration
   }
 
-  if (await igotifyDeviceExists(env.DB, registration.clientToken)) {
-    return ok('Fehler beim hinzugefuegen des Geraetes!', false)
-  }
-
   const client = await getClientByToken(env.DB, registration.clientToken)
   if (!client) {
     return ok('Fehler beim hinzugefuegen des Geraetes!', false)
   }
 
   const latest = await getLatestMessageByUser(env.DB, client.user_id)
-  const inserted = await insertIgotifyDevice(
+  const registered = await upsertIgotifyDevice(
     env.DB,
     registration,
     latest?.id ?? 0
   )
-  return inserted
+  return registered
     ? ok('Geraet erfolgreich hinzugefuegt', true)
     : ok('Fehler beim hinzugefuegen des Geraetes!', false)
 }
@@ -495,7 +490,9 @@ export async function deliverIgotifyMessage(
 ): Promise<IgotifyDeliverySummary> {
   const devices = (
     await Promise.all(
-      (await listIgotifyDevices(env.DB)).map(async (device) => {
+      (
+        await listIgotifyDevices(env.DB)
+      ).map(async (device) => {
         const client = await getClientByToken(env.DB, device.clientToken)
         return client?.user_id === userId ? device : null
       })

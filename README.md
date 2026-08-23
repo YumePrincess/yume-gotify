@@ -77,19 +77,24 @@ Wrangler configuration.
 ## Runtime configuration
 
 Non-secret settings are defined in the `vars` object in `wrangler.jsonc`.
-The current configuration declares `GOTIFY_DEFAULT_PASS` and
+The current configuration declares `GOTIFY_DEFAULTUSER_PASS` and
 `GOTIFY_OIDC_CLIENTSECRET` as required Wrangler secrets. They must not be put in
 `vars` or committed to the repository.
 
 Set them before deploying:
 
 ```bash
-pnpm exec wrangler secret put GOTIFY_DEFAULT_PASS
+pnpm exec wrangler secret put GOTIFY_DEFAULTUSER_PASS
 pnpm exec wrangler secret put GOTIFY_OIDC_CLIENTSECRET
 ```
 
 The OIDC client secret is read at runtime from the Worker secret binding. The
 OIDC issuer and client ID are intentionally non-secret configuration values.
+
+`GOTIFY_LOCALAUTH_ENABLED` is a Yume Gotify switch, not an upstream Gotify 3
+environment variable. It is `true` in the committed configuration, so password
+login and OIDC are both available. Set it to `false` while keeping
+`GOTIFY_OIDC_ENABLED=true` to run an OIDC-only login surface.
 
 ### Versioned components
 
@@ -136,7 +141,7 @@ production placeholders currently used by this project):
     "GOTIFY_OIDC_AUTOREGISTER": "true",
     "GOTIFY_OIDC_LINK_BY_USERNAME": "false",
     "GOTIFY_OIDC_SCOPES": "openid,profile,email",
-    "GOTIFY_OIDC_IDP_NAME": "OIDC",
+    "GOTIFY_OIDC_IDP_NAME": "Yume Account",
     "GOTIFY_OIDC_AUTO_REDIRECT": "false",
     "GOTIFY_OIDC_PROMPT": "login",
     "GOTIFY_SERVER_SECURECOOKIE": "true"
@@ -214,7 +219,7 @@ without a local deployment command or a GitHub Actions workflow.
    - Deploy command: `pnpm run cloudflare:deploy`
    - Non-production branch deploy command: `pnpm run cloudflare:preview`
 4. Select **Save and Deploy**.
-5. Add `GOTIFY_DEFAULT_PASS` as a secret in **Variables & Secrets** before
+5. Add `GOTIFY_DEFAULTUSER_PASS` as a secret in **Variables & Secrets** before
    opening the service to users.
 6. Add `GOTIFY_OIDC_CLIENTSECRET` as a secret in **Variables & Secrets**.
 7. Redeploy so both secrets and runtime variables are available to the Worker.

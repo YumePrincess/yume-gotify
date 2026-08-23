@@ -154,7 +154,7 @@ app.get('/config', (c) => {
     register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
     localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
     oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
-    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC',
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'Yume Account',
     oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false),
     version: {
       version: c.env.GOTIFY_VERSION ?? 'worker-dev',
@@ -244,7 +244,7 @@ app.get('/gotifyinfo', (c) =>
     register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
     localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
     oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
-    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC',
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'Yume Account',
     oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false)
   })
 )
@@ -296,7 +296,7 @@ app.post('/user', optionalAuth, async (c) => {
   try {
     const created = await createUser(c.env.DB, {
       name,
-      pass: await hasher(pass, passwordRounds(c.env.GOTIFY_PASSWORD_ROUNDS)),
+      pass: await hasher(pass, passwordRounds(c.env.GOTIFY_PASSSTRENGTH)),
       admin
     })
     return c.json(toUserExternal(created))
@@ -345,7 +345,7 @@ app.post('/user/:id', requireAdmin, async (c) => {
         typeof body.pass === 'string' && body.pass !== ''
           ? await hasher(
               body.pass,
-              passwordRounds(c.env.GOTIFY_PASSWORD_ROUNDS)
+              passwordRounds(c.env.GOTIFY_PASSSTRENGTH)
             )
           : existing.pass
     })
@@ -416,7 +416,7 @@ app.post('/current/user/password', requireElevatedClient, async (c) => {
     admin: Boolean(user.admin),
     pass: await hasher(
       requireNonEmptyString(body.pass, 'pass'),
-      passwordRounds(c.env.GOTIFY_PASSWORD_ROUNDS)
+      passwordRounds(c.env.GOTIFY_PASSSTRENGTH)
     )
   })
   return new Response(null, { status: 200 })

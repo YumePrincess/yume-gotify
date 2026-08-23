@@ -23,7 +23,7 @@ const config: IConfig = {
   register: false,
   localAuth: true,
   oidc: false,
-  oidcIdpName: 'OIDC',
+  oidcIdpName: 'Yume Account',
   oidcAutoRedirect: false,
   version: { commit: 'unknown', buildDate: 'unknown', version: 'unknown' },
   backgroundImageUrl: '/static/yume-background.webp',

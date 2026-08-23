@@ -64,15 +64,15 @@ async function initializeBootstrap(env: EnvBindings): Promise<void> {
     return
   }
 
-  const password = env.GOTIFY_DEFAULT_PASS?.trim()
+  const password = env.GOTIFY_DEFAULTUSER_PASS?.trim()
   if (!password) {
     return
   }
 
-  const name = env.GOTIFY_DEFAULT_USER?.trim() || 'admin'
+  const name = env.GOTIFY_DEFAULTUSER_NAME?.trim() || 'admin'
   const hash = await hasher(
     password,
-    passwordRounds(env.GOTIFY_PASSWORD_ROUNDS)
+    passwordRounds(env.GOTIFY_PASSSTRENGTH)
   )
   try {
     await run(

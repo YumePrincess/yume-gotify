@@ -115,7 +115,7 @@ const Login = observer(() => {
                     `${config.get('url')}auth/oidc/login?name=${encodeURIComponent(name)}`
                   )
                 }}>
-                {t('login')} · {config.get('oidcIdpName')}
+                {t('loginWith', { name: config.get('oidcIdpName') })}
               </Button>
             )}
           </form>

@@ -13,6 +13,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import Autorenew from '@mui/icons-material/Autorenew'
 import CloudUpload from '@mui/icons-material/CloudUpload'
 import Delete from '@mui/icons-material/Delete'
 import DragIndicator from '@mui/icons-material/DragIndicator'
@@ -40,6 +41,7 @@ import { useStores } from '../stores'
 import { useI18n } from '../i18n'
 import { IApplication } from '../types'
 import { AddApplicationDialog } from './AddApplicationDialog'
+import { GeneratedApplicationTokenDialog } from './GeneratedApplicationTokenDialog'
 import { UpdateApplicationDialog } from './UpdateApplicationDialog'
 
 const useStyles = makeStyles()((theme) => ({
@@ -70,6 +72,11 @@ const Applications = observer(() => {
   const [toDeleteApp, setToDeleteApp] = useState<IApplication>()
   const [toDeleteImage, setToDeleteImage] = useState<IApplication>()
   const [toUpdateApp, setToUpdateApp] = useState<IApplication>()
+  const [toRegenerateApp, setToRegenerateApp] = useState<IApplication>()
+  const [generatedToken, setGeneratedToken] = useState<{
+    appName: string
+    token: string
+  }>()
   const [createDialog, setCreateDialog] = useState<boolean>(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -138,6 +145,7 @@ const Applications = observer(() => {
                   <TableCell>{t('lastUsed')}</TableCell>
                   <TableCell />
                   <TableCell />
+                  <TableCell />
                 </TableRow>
               </TableHead>
               <SortableContext
@@ -151,6 +159,7 @@ const Applications = observer(() => {
                       fUpload={() => handleImageUploadClick(app.id)}
                       fDeleteImage={() => setToDeleteImage(app)}
                       fDelete={() => setToDeleteApp(app)}
+                      fRegenerate={() => setToRegenerateApp(app)}
                       fEdit={() => setToUpdateApp(app)}
                     />
                   ))}
@@ -205,6 +214,30 @@ const Applications = observer(() => {
           fOnSubmit={() => appStore.deleteImage(toDeleteImage.id)}
         />
       )}
+      {toRegenerateApp != null && (
+        <ConfirmDialog
+          title={t('regenerateTokenTitle')}
+          text={t('regenerateTokenWarning', {
+            name: toRegenerateApp.name
+          })}
+          fClose={() => setToRegenerateApp(undefined)}
+          fOnSubmit={() => {
+            const app = toRegenerateApp
+            setToRegenerateApp(undefined)
+            void appStore
+              .regenerateToken(app.id)
+              .then((token) => setGeneratedToken({ appName: app.name, token }))
+              .catch(() => undefined)
+          }}
+        />
+      )}
+      {generatedToken != null && (
+        <GeneratedApplicationTokenDialog
+          appName={generatedToken.appName}
+          token={generatedToken.token}
+          fClose={() => setGeneratedToken(undefined)}
+        />
+      )}
     </DefaultPage>
   )
 })
@@ -214,10 +247,18 @@ interface IRowProps {
   fUpload: VoidFunction
   fDeleteImage: VoidFunction
   fDelete: VoidFunction
+  fRegenerate: VoidFunction
   fEdit: VoidFunction
 }
 
-const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
+const Row = ({
+  app,
+  fDelete,
+  fUpload,
+  fDeleteImage,
+  fRegenerate,
+  fEdit
+}: IRowProps) => {
   const { classes } = useStyles()
   const { t } = useI18n()
   const isDefaultImage = app.image === 'static/defaultapp.png'
@@ -290,6 +331,16 @@ const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
       <TableCell>{app.defaultPriority}</TableCell>
       <TableCell>
         <LastUsedCell lastUsed={app.lastUsed} />
+      </TableCell>
+      <TableCell align="right" padding="none">
+        <IconButton
+          onClick={fRegenerate}
+          className="regenerate-token"
+          title={t('regenerateToken')}
+          aria-label={t('regenerateToken')}
+          disabled={app.internal}>
+          <Autorenew />
+        </IconButton>
       </TableCell>
       <TableCell align="right" padding="none">
         <IconButton

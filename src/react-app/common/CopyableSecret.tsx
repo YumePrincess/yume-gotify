@@ -11,10 +11,11 @@ import { useI18n } from '../i18n'
 interface IProps {
   value: string
   style?: CSSProperties
+  initialVisible?: boolean
 }
 
-const CopyableSecret = ({ value, style }: IProps) => {
-  const [visible, setVisible] = React.useState(false)
+const CopyableSecret = ({ value, style, initialVisible = false }: IProps) => {
+  const [visible, setVisible] = React.useState(initialVisible)
   const text = visible ? value : '•••••••••••••••'
   const { snackManager } = useStores()
   const { t } = useI18n()

@@ -102,12 +102,12 @@ export class AppStore extends BaseStore<IApplication> {
     const created = await requestJson<IApplication>(
       `${config.get('url')}application`,
       {
-      method: 'POST',
-      body: {
-        name,
-        description,
-        defaultPriority
-      }
+        method: 'POST',
+        body: {
+          name,
+          description,
+          defaultPriority
+        }
       }
     )
     await this.refresh()
@@ -116,6 +116,23 @@ export class AppStore extends BaseStore<IApplication> {
       refreshed.token = created.token
     }
     this.snack(translate('applicationCreated'))
+  }
+
+  @action
+  public regenerateToken = async (id: number): Promise<string> => {
+    const response = await requestJson<{
+      regenerateToken?: { token?: string }
+    }>(`${config.get('url')}application/${id}/security`, {
+      method: 'PUT',
+      body: { regenerateToken: true }
+    })
+    const token = response.regenerateToken?.token
+    if (!token) {
+      throw new Error('application token was not returned')
+    }
+
+    this.snack(translate('applicationTokenRegenerated'))
+    return token
   }
 
   public getName = (id: number): string => {

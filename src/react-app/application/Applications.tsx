@@ -282,7 +282,7 @@ const Row = ({ app, fDelete, fUpload, fDeleteImage, fEdit }: IRowProps) => {
       <TableCell>{app.name}</TableCell>
       <TableCell>
         <CopyableSecret
-          value={app.token}
+          value={app.token ?? ''}
           style={{ display: 'flex', alignItems: 'center' }}
         />
       </TableCell>

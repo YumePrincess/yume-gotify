@@ -41,6 +41,10 @@ export class ClientStore extends BaseStore<IClient> {
       body: { name }
     })
     await this.refresh()
+    const refreshed = this.items.find((item) => item.id === client.id)
+    if (refreshed && client.token) {
+      refreshed.token = client.token
+    }
     return client
   }
 

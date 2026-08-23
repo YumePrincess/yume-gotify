@@ -3,6 +3,10 @@ import { IVersion } from './types'
 export interface IConfig {
   url: string
   register: boolean
+  localAuth: boolean
+  oidc: boolean
+  oidcIdpName: string
+  oidcAutoRedirect: boolean
   version: IVersion
   backgroundImageUrl: string
   logoBarUrl: string
@@ -17,6 +21,10 @@ declare global {
 const config: IConfig = {
   url: 'unset',
   register: false,
+  localAuth: true,
+  oidc: false,
+  oidcIdpName: 'OIDC',
+  oidcAutoRedirect: false,
   version: { commit: 'unknown', buildDate: 'unknown', version: 'unknown' },
   backgroundImageUrl: '/static/yume-background.webp',
   logoBarUrl: 'https://www.yume.zone/assets/img/yumegotify.png',
@@ -62,6 +70,18 @@ export async function loadRuntimeConfig(): Promise<void> {
 
     if (typeof payload.register === 'boolean') {
       config.register = payload.register
+    }
+    if (typeof payload.localAuth === 'boolean') {
+      config.localAuth = payload.localAuth
+    }
+    if (typeof payload.oidc === 'boolean') {
+      config.oidc = payload.oidc
+    }
+    if (typeof payload.oidcIdpName === 'string' && payload.oidcIdpName.trim()) {
+      config.oidcIdpName = payload.oidcIdpName.trim()
+    }
+    if (typeof payload.oidcAutoRedirect === 'boolean') {
+      config.oidcAutoRedirect = payload.oidcAutoRedirect
     }
     if (validVersion(payload.version)) {
       config.version = payload.version

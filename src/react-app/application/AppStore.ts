@@ -99,15 +99,22 @@ export class AppStore extends BaseStore<IApplication> {
     description: string,
     defaultPriority: number
   ): Promise<void> => {
-    await requestVoid(`${config.get('url')}application`, {
+    const created = await requestJson<IApplication>(
+      `${config.get('url')}application`,
+      {
       method: 'POST',
       body: {
         name,
         description,
         defaultPriority
       }
-    })
+      }
+    )
     await this.refresh()
+    const refreshed = this.items.find((item) => item.id === created.id)
+    if (refreshed && created.token) {
+      refreshed.token = created.token
+    }
     this.snack(translate('applicationCreated'))
   }
 

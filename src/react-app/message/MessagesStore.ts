@@ -158,7 +158,10 @@ export class MessagesStore {
     priority: number
   ): Promise<void> => {
     const app = this.appStore.getByID(appId)
-    const payload: Pick<IMessage, 'title' | 'message' | 'priority'> = {
+    const payload: Pick<IMessage, 'title' | 'message' | 'priority'> & {
+      appid: number
+    } = {
+      appid: appId,
       message,
       priority,
       title
@@ -166,8 +169,7 @@ export class MessagesStore {
 
     await requestVoid(`${config.get('url')}message`, {
       method: 'POST',
-      body: payload,
-      headers: { 'X-Gotify-Key': app.token }
+      body: payload
     })
     this.snack(translate('messageSent', { name: app.name }))
   }

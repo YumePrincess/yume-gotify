@@ -87,15 +87,12 @@ const request = async (
   const headers = new Headers(rawHeaders)
   const resolvedBody = resolveBody(body, headers)
 
-  if (auth && !headers.has('X-Gotify-Key')) {
-    headers.set('X-Gotify-Key', apiContext?.currentUser.token() ?? '')
-  }
-
   try {
     const response = await fetch(url, {
       ...rest,
       body: resolvedBody,
-      headers
+      headers,
+      credentials: 'same-origin'
     })
 
     if (!response.ok) {

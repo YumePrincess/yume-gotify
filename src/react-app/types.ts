@@ -1,6 +1,6 @@
 export interface IApplication {
   id: number
-  token: string
+  token?: string
   name: string
   sortKey: string
   description: string
@@ -12,9 +12,12 @@ export interface IApplication {
 
 export interface IClient {
   id: number
-  token: string
+  token?: string
   name: string
   lastUsed: string | null
+  createdAt?: string
+  elevatedUntil?: string | null
+  expiresAfterInactivitySeconds?: number
 }
 
 export interface IPlugin {
@@ -62,6 +65,9 @@ export interface IUser {
   id: number
   name: string
   admin: boolean
+  createdAt?: string
+  clientId?: number
+  elevatedUntil?: string | null
 }
 
 export interface IVersion {

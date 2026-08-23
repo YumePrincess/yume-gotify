@@ -4,13 +4,10 @@ import { observable, runInAction, action } from 'mobx'
 import { isHttpError, requestJson, requestVoid } from './api'
 import * as config from './config'
 import { SnackReporter } from './snack/SnackManager'
-import { IClient, IUser } from './types'
+import { IUser } from './types'
 import { translate } from './i18n'
 
-const tokenKey = 'gotify-login-key'
-
 export class CurrentUser {
-  private tokenCache: string | null = null
   private reconnectTimeoutId: number | null = null
   private reconnectTime = 7500
   @observable accessor loggedIn = false
@@ -22,22 +19,8 @@ export class CurrentUser {
   public constructor(private readonly snack: SnackReporter) {}
 
   public token = (): string => {
-    if (this.tokenCache !== null) {
-      return this.tokenCache
-    }
-
-    const localStorageToken = window.localStorage.getItem(tokenKey)
-    if (localStorageToken) {
-      this.tokenCache = localStorageToken
-      return localStorageToken
-    }
-
+    // Gotify 3 authenticates browser requests with the HttpOnly session cookie.
     return ''
-  }
-
-  private readonly setToken = (token: string) => {
-    this.tokenCache = token
-    window.localStorage.setItem(tokenKey, token)
   }
 
   public register = async (name: string, pass: string): Promise<boolean> =>
@@ -80,20 +63,17 @@ export class CurrentUser {
     const name =
       (browser && browser.name + ' ' + browser.version) ||
       translate('unknownBrowser')
-    requestJson<IClient>(config.get('url') + 'client', {
+    requestJson<IUser>(config.get('url') + 'auth/local/login', {
       method: 'POST',
       auth: false,
       handleError: false,
-      body: { name },
+      body: new URLSearchParams({ name }),
       headers: { Authorization: 'Basic ' + btoa(username + ':' + password) }
     })
-      .then((client) => {
+      .then(() => {
         this.snack(translate('sessionClientCreated', { name }))
-        this.setToken(client.token)
         this.tryAuthenticate().catch(() => {
-          console.log(
-            'create client succeeded, but authenticated with given token failed'
-          )
+          console.log('session created, but cookie authentication failed')
         })
       })
       .catch(
@@ -105,17 +85,9 @@ export class CurrentUser {
   }
 
   public tryAuthenticate = async (): Promise<IUser> => {
-    if (this.token() === '') {
-      runInAction(() => {
-        this.authenticating = false
-      })
-      return Promise.reject(new Error('No client token available.'))
-    }
-
     return requestJson<IUser>(config.get('url') + 'current/user', {
       auth: false,
-      handleError: false,
-      headers: { 'X-Gotify-Key': this.token() }
+      handleError: false
     })
       .then(
         action((user) => {
@@ -151,24 +123,11 @@ export class CurrentUser {
   }
 
   public logout = async () => {
-    await requestJson<IClient[]>(config.get('url') + 'client', {
+    await requestVoid(config.get('url') + 'auth/logout', {
+      method: 'POST',
+      auth: false,
       handleError: false
-    })
-      .then((clients) =>
-        Promise.all(
-          clients
-            .filter((client) => client.token === this.tokenCache)
-            .map((client) =>
-              requestVoid(config.get('url') + 'client/' + client.id, {
-                method: 'DELETE',
-                handleError: false
-              })
-            )
-        )
-      )
-      .catch(() => Promise.resolve())
-    window.localStorage.removeItem(tokenKey)
-    this.tokenCache = null
+    }).catch(() => undefined)
     runInAction(() => {
       this.loggedIn = false
     })

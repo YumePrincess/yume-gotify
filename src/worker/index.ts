@@ -1,12 +1,13 @@
-import { hash as hasher } from 'bcryptjs'
+import { compare, hash as hasher } from 'bcryptjs'
 import { WorkerEntrypoint } from 'cloudflare:workers'
 import { Hono } from 'hono'
 
 import {
   optionalAuth,
   requireAdmin,
-  requireApplication,
-  requireClient
+  requireApplicationOrClient,
+  requireClient,
+  requireElevatedClient
 } from './auth'
 import {
   countAdmins,
@@ -25,6 +26,7 @@ import {
   getApplicationByToken,
   getApplicationsByUser,
   getClientById,
+  getClientByToken,
   getClientsByUser,
   getMessageById,
   getMessagesByApplication,
@@ -34,7 +36,9 @@ import {
   getUsers,
   ping,
   updateApplication,
+  regenerateApplicationToken,
   updateClient,
+  updateClientElevation,
   updateUser
 } from './db'
 import {
@@ -54,6 +58,7 @@ import {
 } from './igotify'
 import { ensureMigrations } from './migrations'
 import { StreamHub } from './stream'
+import { maybeHandleOidcRequest } from './oidc'
 import type { AuthState, EnvBindings, PagedMessages } from './types'
 import {
   ApiError,
@@ -62,7 +67,10 @@ import {
   buildAppImageObjectKey,
   contentTypeFromExtension,
   corsHeaders,
+  getBasicCredentials,
   generateImageName,
+  getTokenFromRequest,
+  gotifyClientCookie,
   isSupportedImage,
   isUniqueConstraintError,
   jsonError,
@@ -144,6 +152,10 @@ app.get('/config', (c) => {
   c.header('cache-control', 'no-store')
   return c.json({
     register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
+    localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
+    oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC',
+    oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false),
     version: {
       version: c.env.GOTIFY_VERSION ?? 'worker-dev',
       commit: c.env.GOTIFY_COMMIT ?? 'unknown',
@@ -156,6 +168,57 @@ app.get('/config', (c) => {
       c.env.GOTIFY_LOGO_BAR_URL?.trim() ||
       'https://www.yume.zone/assets/img/yumegotify.png'
   })
+})
+
+app.post('/auth/local/login', async (c) => {
+  if (!boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true)) {
+    throw new ApiError(403, 'local authentication is disabled')
+  }
+
+  const credentials = getBasicCredentials(c.req.raw)
+  if (!credentials) {
+    throw new ApiError(401, 'basic auth required')
+  }
+
+  const user = await getUserByName(c.env.DB, credentials.name)
+  if (!user || !(await compare(credentials.pass, user.pass))) {
+    throw new ApiError(401, 'invalid credentials')
+  }
+
+  const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
+  const client = await createClient(c.env.DB, {
+    name: requireNonEmptyString(body.name, 'name'),
+    userId: user.id,
+    elevatedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    expiresAfterInactivitySeconds: 7 * 24 * 60 * 60
+  })
+  c.header(
+    'Set-Cookie',
+    gotifyClientCookie(
+      client.token,
+      boolFromEnv(c.env.GOTIFY_SERVER_SECURECOOKIE, true)
+    )
+  )
+  return c.json(
+    toUserExternal(user, {
+      clientId: client.id,
+      elevatedUntil: client.elevated_until
+    })
+  )
+})
+
+app.post('/auth/logout', requireClient, async (c) => {
+  const token = getTokenFromRequest(c.req.raw)
+  const client = token ? await getClientByToken(c.env.DB, token) : null
+  if (!client) {
+    throw new ApiError(403, 'no client auth provided')
+  }
+  await deleteClient(c.env.DB, client.id)
+  c.header(
+    'Set-Cookie',
+    gotifyClientCookie('', boolFromEnv(c.env.GOTIFY_SERVER_SECURECOOKIE, true), -1)
+  )
+  return new Response(null, { status: 200 })
 })
 
 app.get('/version', (c) =>
@@ -242,7 +305,7 @@ app.post('/user', optionalAuth, async (c) => {
 
 app.get('/user', requireAdmin, async (c) => {
   const users = await getUsers(c.env.DB)
-  return c.json(users.map(toUserExternal))
+  return c.json(users.map((user) => toUserExternal(user)))
 })
 
 app.get('/user/:id', requireAdmin, async (c) => {
@@ -323,10 +386,18 @@ app.get('/current/user', requireClient, async (c) => {
   if (!user) {
     throw new ApiError(404, 'user does not exist')
   }
-  return c.json(toUserExternal(user))
+  const client = auth.kind === 'client'
+    ? await getClientByToken(c.env.DB, auth.token)
+    : null
+  return c.json(
+    toUserExternal(user, {
+      clientId: client?.id,
+      elevatedUntil: client?.elevated_until
+    })
+  )
 })
 
-app.post('/current/user/password', requireClient, async (c) => {
+app.post('/current/user/password', requireElevatedClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const user = await getUserById(c.env.DB, auth.userId)
   if (!user) {
@@ -349,17 +420,28 @@ app.post('/current/user/password', requireClient, async (c) => {
 app.get('/client', requireClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const clients = await getClientsByUser(c.env.DB, auth.userId)
-  return c.json(clients.map(toClientExternal))
+  return c.json(clients.map((client) => toClientExternal(client)))
 })
 
 app.post('/client', requireClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
+  const expiresAfterInactivitySeconds = maybeNumber(
+    body.expiresAfterInactivitySeconds,
+    0
+  )
+  if (
+    !Number.isInteger(expiresAfterInactivitySeconds) ||
+    expiresAfterInactivitySeconds < 0
+  ) {
+    throw new ApiError(400, 'invalid inactivity expiration')
+  }
   const created = await createClient(c.env.DB, {
     name: requireNonEmptyString(body.name, 'name'),
-    userId: auth.userId
+    userId: auth.userId,
+    expiresAfterInactivitySeconds
   })
-  return c.json(toClientExternal(created))
+  return c.json(toClientExternal(created, true))
 })
 
 app.put('/client/:id', requireClient, async (c) => {
@@ -371,14 +453,43 @@ app.put('/client/:id', requireClient, async (c) => {
   }
 
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
+  const expiresAfterInactivitySeconds = body.expiresAfterInactivitySeconds === undefined
+    ? undefined
+    : maybeNumber(body.expiresAfterInactivitySeconds, -1)
+  if (
+    expiresAfterInactivitySeconds !== undefined &&
+    (!Number.isInteger(expiresAfterInactivitySeconds) || expiresAfterInactivitySeconds < 0)
+  ) {
+    throw new ApiError(400, 'invalid inactivity expiration')
+  }
   const updated = await updateClient(c.env.DB, {
     id,
-    name: requireNonEmptyString(body.name, 'name')
+    name: requireNonEmptyString(body.name, 'name'),
+    expiresAfterInactivitySeconds
   })
   return c.json(toClientExternal(updated))
 })
 
-app.delete('/client/:id', requireClient, async (c) => {
+app.post('/client/:id/elevate', requireElevatedClient, async (c) => {
+  const auth = requireAuth(c.get('auth'))
+  const id = parseId(c.req.param('id'))
+  const client = await getClientById(c.env.DB, id)
+  if (!client || client.user_id !== auth.userId) {
+    throw new ApiError(404, 'client does not exist')
+  }
+  const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
+  const durationSeconds = maybeNumber(body.durationSeconds, 0)
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 0) {
+    throw new ApiError(400, 'invalid elevation duration')
+  }
+  const elevatedUntil = durationSeconds === 0
+    ? null
+    : new Date(Date.now() + durationSeconds * 1000).toISOString()
+  await updateClientElevation(c.env.DB, id, elevatedUntil)
+  return new Response(null, { status: 204 })
+})
+
+app.delete('/client/:id', requireElevatedClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const id = parseId(c.req.param('id'))
   const client = await getClientById(c.env.DB, id)
@@ -392,7 +503,7 @@ app.delete('/client/:id', requireClient, async (c) => {
 app.get('/application', requireClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const apps = await getApplicationsByUser(c.env.DB, auth.userId)
-  return c.json(apps.map(toApplicationExternal))
+  return c.json(apps.map((appRow) => toApplicationExternal(appRow)))
 })
 
 app.post('/application', requireClient, async (c) => {
@@ -406,7 +517,7 @@ app.post('/application', requireClient, async (c) => {
       defaultPriority: maybeNumber(body.defaultPriority, 0),
       sortKey: typeof body.sortKey === 'string' ? body.sortKey : undefined
     })
-    return c.json(toApplicationExternal(created))
+    return c.json(toApplicationExternal(created, true))
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       throw new ApiError(400, 'sort key is not unique')
@@ -445,7 +556,7 @@ app.put('/application/:id', requireClient, async (c) => {
   }
 })
 
-app.delete('/application/:id', requireClient, async (c) => {
+app.delete('/application/:id', requireElevatedClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const id = parseId(c.req.param('id'))
   const appRow = await getApplicationById(c.env.DB, id)
@@ -462,6 +573,27 @@ app.delete('/application/:id', requireClient, async (c) => {
   }
   await deleteApplication(c.env.DB, id)
   return new Response(null, { status: 200 })
+})
+
+app.put('/application/:id/security', requireElevatedClient, async (c) => {
+  const auth = requireAuth(c.get('auth'))
+  const id = parseId(c.req.param('id'))
+  const appRow = await getApplicationById(c.env.DB, id)
+  if (!appRow || appRow.user_id !== auth.userId) {
+    throw new ApiError(404, `app with id ${id} doesn't exists`)
+  }
+
+  const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
+  if (!Boolean(body.regenerateToken)) {
+    return c.json({})
+  }
+
+  const rotated = await regenerateApplicationToken(c.env.DB, id)
+  return c.json({
+    regenerateToken: {
+      token: rotated.privateToken
+    }
+  })
 })
 
 app.post('/application/:id/image', requireClient, async (c) => {
@@ -606,15 +738,20 @@ app.delete('/message/:id', requireClient, async (c) => {
   return new Response(null, { status: 200 })
 })
 
-app.post('/message', requireApplication, async (c) => {
+app.post('/message', requireApplicationOrClient, async (c) => {
   const auth = requireAuth(c.get('auth'))
   const body = await readJsonBody<Record<string, unknown>>(c.req.raw)
-  const application = await getApplicationByToken(c.env.DB, auth.token)
+  const application = auth.kind === 'application'
+    ? await getApplicationByToken(c.env.DB, auth.token)
+    : await getApplicationById(c.env.DB, maybeNumber(body.appid, -1))
   if (!application) {
     throw new ApiError(
       401,
       'you need to provide a valid access token or user credentials to access this api'
     )
+  }
+  if (auth.kind !== 'application' && application.user_id !== auth.userId) {
+    throw new ApiError(404, 'application does not exist')
   }
 
   const title = maybeString(body.title).trim() || application.name
@@ -700,6 +837,10 @@ app.post('/plugin/:id/disable', requireClient, async (c) => {
 })
 
 app.all('*', async (c) => {
+  const oidcResponse = await maybeHandleOidcRequest(c.req.raw, c.env)
+  if (oidcResponse) {
+    return oidcResponse
+  }
   const response = await maybeHandleIgotifyRequest(c.req.raw, c.env)
   return response ?? jsonError(404, 'Not Found')
 })

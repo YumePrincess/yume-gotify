@@ -7,6 +7,8 @@ export interface UserRow {
   name: string
   pass: string
   admin: number
+  oidc_id?: string | null
+  created_at?: string
 }
 
 export interface ClientRow {
@@ -15,6 +17,9 @@ export interface ClientRow {
   user_id: number
   name: string
   last_used: string | null
+  created_at?: string
+  elevated_until?: string | null
+  expires_after_inactivity_seconds?: number
 }
 
 export interface ApplicationRow {
@@ -28,6 +33,7 @@ export interface ApplicationRow {
   default_priority: number
   last_used: string | null
   sort_key: string
+  created_at?: string
 }
 
 export interface MessageRow {
@@ -57,18 +63,24 @@ export interface UserExternal {
   id: number
   name: string
   admin: boolean
+  createdAt?: string
+  clientId?: number
+  elevatedUntil?: string | null
 }
 
 export interface ClientExternal {
   id: number
-  token: string
+  token?: string
   name: string
   lastUsed: string | null
+  createdAt?: string
+  elevatedUntil?: string | null
+  expiresAfterInactivitySeconds?: number
 }
 
 export interface ApplicationExternal {
   id: number
-  token: string
+  token?: string
   name: string
   description: string
   internal: boolean
@@ -76,6 +88,7 @@ export interface ApplicationExternal {
   defaultPriority: number
   lastUsed: string | null
   sortKey: string
+  createdAt?: string
 }
 
 export interface MessageExternal {

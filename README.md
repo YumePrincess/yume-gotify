@@ -5,7 +5,7 @@
 <h1 align="center">Yume Gotify</h1>
 
 <p align="center">
-  A multilingual Gotify-compatible notification service for Cloudflare Workers.
+  A multilingual Gotify 3.x-compatible notification service for Cloudflare Workers.
 </p>
 
 ## Introduction
@@ -25,6 +25,15 @@ belongs to the Gotify contributors.
 
 - Gotify-compatible applications, clients, messages, users, and WebSocket
   streams
+- Gotify 3 session-cookie authentication with HttpOnly, SameSite, Secure
+  cookies
+- Gotify 3 enhanced Ed25519 application/client tokens (`gtfya.` and `gtfyc.`)
+  with private tokens returned only when a resource is created
+- OIDC browser login, native PKCE login, OIDC account linking, auto-registration,
+  and OIDC session elevation
+- iGotify Notification Assistant 1.6.0.0 integration, including `/Version`,
+  device registration, realtime notification forwarding, and SecNtfy preview
+  payloads
 - Cloudflare D1 persistence, R2 application images, and a Durable Object stream
   hub
 - Japanese, English, French, Simplified Chinese, and Traditional Chinese
@@ -61,16 +70,89 @@ pnpm run build
 pnpm run cf-typegen
 ```
 
-Run `pnpm run cf-typegen` whenever a binding or `vars` entry changes in
+Run `pnpm run cf-typegen` whenever a binding, `vars`, or `secrets.required` entry changes in
 `wrangler.jsonc`. It regenerates `worker-configuration.d.ts` from the active
 Wrangler configuration.
 
 ## Runtime configuration
 
 Non-secret settings are defined in the `vars` object in `wrangler.jsonc`.
-Secrets such as the production administrator password should be stored through
-Cloudflare **Variables & Secrets** or `wrangler secret put`, not committed as
-plain text.
+The current configuration declares `GOTIFY_DEFAULT_PASS` and
+`GOTIFY_OIDC_CLIENTSECRET` as required Wrangler secrets. They must not be put in
+`vars` or committed to the repository.
+
+Set them before deploying:
+
+```bash
+pnpm exec wrangler secret put GOTIFY_DEFAULT_PASS
+pnpm exec wrangler secret put GOTIFY_OIDC_CLIENTSECRET
+```
+
+The OIDC client secret is read at runtime from the Worker secret binding. The
+OIDC issuer and client ID are intentionally non-secret configuration values.
+
+### Versioned components
+
+The Worker exposes the versions independently so the iGotify client can verify
+the assistant contract without confusing it with the Gotify server version:
+
+| Component | Runtime value | Endpoint |
+| --- | --- | --- |
+| Gotify server | `3.0.0` | `/version` |
+| iGotify Notification Assistant | `1.6.0.0` | `/Version` and `/api/version` |
+
+Keep the two values separate when upgrading either component.
+
+### Gotify 3 authentication
+
+Browser login is implemented by `POST /auth/local/login` with HTTP Basic
+credentials and a form field named `name`. The Worker returns a Gotify 3
+session cookie; the React client never stores an access token in local storage.
+Logout uses `POST /auth/logout` and deletes the session client.
+
+`GET /client` and `GET /application` intentionally return no access tokens.
+`POST /client` and `POST /application` return the newly generated private token
+once. Applications send messages through the authenticated web session using
+the `appid` field; external senders use their private `gtfya.` application
+token.
+
+Existing pre-3.x `A...`/`C...` tokens are not migrated or accepted. Create new
+Gotify 3 clients and applications after upgrading.
+
+### OIDC
+
+Set these `vars` entries in `wrangler.jsonc` (the repository contains the
+production placeholders currently used by this project):
+
+```jsonc
+{
+  "vars": {
+    "GOTIFY_LOCALAUTH_ENABLED": "true",
+    "GOTIFY_OIDC_ENABLED": "true",
+    "GOTIFY_OIDC_ISSUER": "https://account.yume.zone",
+    "GOTIFY_OIDC_CLIENTID": "replace-with-client-id",
+    "GOTIFY_OIDC_USERNAMECLAIM": "preferred_username",
+    "GOTIFY_OIDC_REDIRECTURL": "https://gotify.yume.zone/auth/oidc/callback",
+    "GOTIFY_OIDC_AUTOREGISTER": "true",
+    "GOTIFY_OIDC_LINK_BY_USERNAME": "false",
+    "GOTIFY_OIDC_SCOPES": "openid,profile,email",
+    "GOTIFY_OIDC_IDP_NAME": "OIDC",
+    "GOTIFY_OIDC_AUTO_REDIRECT": "false",
+    "GOTIFY_OIDC_PROMPT": "login",
+    "GOTIFY_SERVER_SECURECOOKIE": "true"
+  }
+}
+```
+
+The browser flow uses `/auth/oidc/login` and `/auth/oidc/callback`. Native
+clients use the PKCE endpoints:
+
+- `POST /auth/oidc/external/authorize`
+- `POST /auth/oidc/external/token`
+
+The native redirect URI should be `gotify://oidc/callback`, matching the Gotify
+3 client contract. Both flows validate the issuer, audience, nonce, expiry,
+JWKS signature, and PKCE verifier before creating a client session.
 
 ### Background image
 
@@ -132,9 +214,10 @@ without a local deployment command or a GitHub Actions workflow.
    - Deploy command: `pnpm run cloudflare:deploy`
    - Non-production branch deploy command: `pnpm run cloudflare:preview`
 4. Select **Save and Deploy**.
-5. Add `GOTIFY_DEFAULT_PASS` as a secret in **Variables & Secrets** and replace
-   the development default before opening the service to users.
-6. Redeploy so the secret and runtime variables are available to the Worker.
+5. Add `GOTIFY_DEFAULT_PASS` as a secret in **Variables & Secrets** before
+   opening the service to users.
+6. Add `GOTIFY_OIDC_CLIENTSECRET` as a secret in **Variables & Secrets**.
+7. Redeploy so both secrets and runtime variables are available to the Worker.
 
 D1 and R2 resource identifiers are intentionally omitted from `wrangler.jsonc`
 so Workers Builds can provision them in the target account. The Worker applies
@@ -172,7 +255,10 @@ domain must belong to the Cloudflare account used for deployment.
 
 ## Known limitation
 
-- Some API-visible changes may not appear immediately in already-open clients.
+- Upgrading to Gotify 3 intentionally invalidates pre-3.x application and client
+  tokens. Recreate those resources and re-register iGotify devices.
+- An OIDC provider must expose a standards-compliant discovery document, JWKS,
+  authorization endpoint, token endpoint, and ID token claims.
 
 ## Client
 

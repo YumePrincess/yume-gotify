@@ -1,6 +1,5 @@
 import {
   getClientByToken,
-  getClientsByUser,
   getLatestMessageByUser,
   getMessagesByUserAfter
 } from './db'
@@ -12,7 +11,6 @@ import {
   igotifyDeviceExists,
   insertIgotifyDevice,
   listIgotifyDevices,
-  listIgotifyDevicesByClientTokens,
   releaseIgotifyNotificationDelivery,
   reserveIgotifyNotificationDelivery,
   updateIgotifyHeaders,
@@ -29,7 +27,9 @@ import type {
 import type { EnvBindings, MessageExternal } from './types'
 import { toMessageExternal } from './utils'
 
-const minDeviceTokenLength = 60
+// Gotify 3 enhanced client tokens are `gtfyc.` plus a 32-byte raw Ed25519
+// seed encoded without padding (49 characters total).
+const gotifyClientTokenPattern = /^gtfyc\.[A-Za-z0-9_-]{43}$/
 const pendingMessagesPerDevice = 50
 
 const igotifyCorsHeaders = {
@@ -138,7 +138,7 @@ function validateRegistration(
   if (
     clientToken.length === 0 ||
     clientToken === 'string' ||
-    deviceToken.length < minDeviceTokenLength ||
+    !gotifyClientTokenPattern.test(clientToken) ||
     deviceToken === 'string'
   ) {
     return ok('Fehler beim hinzugefuegen des Geraetes!', false)
@@ -493,11 +493,14 @@ export async function deliverIgotifyMessage(
   message: MessageExternal,
   gotifyUrl: string
 ): Promise<IgotifyDeliverySummary> {
-  const clients = await getClientsByUser(env.DB, userId)
-  const devices = await listIgotifyDevicesByClientTokens(
-    env.DB,
-    clients.map((client) => client.token)
-  )
+  const devices = (
+    await Promise.all(
+      (await listIgotifyDevices(env.DB)).map(async (device) => {
+        const client = await getClientByToken(env.DB, device.clientToken)
+        return client?.user_id === userId ? device : null
+      })
+    )
+  ).filter((device): device is IgotifyDeviceRecord => device !== null)
   const summary: IgotifyDeliverySummary = {
     checked: devices.length,
     forwarded: 0,

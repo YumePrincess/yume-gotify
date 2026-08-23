@@ -61,7 +61,7 @@ const Clients = observer(() => {
                 <Row
                   key={client.id}
                   name={client.name}
-                  value={client.token}
+                  value={client.token ?? ''}
                   lastUsed={client.lastUsed}
                   fEdit={() => setToUpdateClient(client)}
                   fDelete={() => setToDeleteClient(client)}

@@ -150,6 +150,26 @@ export function boolFromEnv(
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }
 
+export const gotifyCookieMaxAge = 7 * 24 * 60 * 60
+
+export function gotifyClientCookie(
+  token: string,
+  secure: boolean,
+  maxAge = gotifyCookieMaxAge
+): string {
+  const parts = [
+    `gotify-client-token=${encodeURIComponent(token)}`,
+    'Path=/',
+    `Max-Age=${maxAge}`,
+    'HttpOnly',
+    'SameSite=Strict'
+  ]
+  if (secure) {
+    parts.push('Secure')
+  }
+  return parts.join('; ')
+}
+
 export function passwordRounds(value: string | undefined): number {
   const rounds = Number(value ?? '10')
   return Number.isInteger(rounds) && rounds >= 4 ? rounds : 10
@@ -168,18 +188,31 @@ export function getTokenFromRequest(request: Request): string {
   }
 
   const authorization = request.headers.get('Authorization')
-  if (!authorization) {
-    return ''
-  }
-
   if (
-    authorization.length < 7 ||
-    authorization.slice(0, 7).toLowerCase() !== 'bearer '
+    authorization &&
+    authorization.length >= 7 &&
+    authorization.slice(0, 7).toLowerCase() === 'bearer '
   ) {
-    return ''
+    return authorization.slice(7)
   }
 
-  return authorization.slice(7)
+  const cookieHeader = request.headers.get('Cookie') ?? ''
+  for (const cookie of cookieHeader.split(';')) {
+    const separator = cookie.indexOf('=')
+    if (separator < 0) {
+      continue
+    }
+    const name = cookie.slice(0, separator).trim()
+    if (name === 'gotify-client-token') {
+      try {
+        return decodeURIComponent(cookie.slice(separator + 1).trim())
+      } catch {
+        return ''
+      }
+    }
+  }
+
+  return ''
 }
 
 export function getBasicCredentials(
@@ -328,37 +361,62 @@ export function isSupportedImage(buffer: ArrayBuffer): boolean {
   return false
 }
 
-export function toUserExternal(user: UserRow): UserExternal {
-  return {
+export function toUserExternal(
+  user: UserRow,
+  session?: { clientId?: number; elevatedUntil?: string | null }
+): UserExternal {
+  const response: UserExternal = {
     id: user.id,
     name: user.name,
     admin: Boolean(user.admin)
   }
+  if (user.created_at) {
+    response.createdAt = user.created_at
+  }
+  if (session?.clientId !== undefined) {
+    response.clientId = session.clientId
+    response.elevatedUntil = session.elevatedUntil ?? null
+  }
+  return response
 }
 
-export function toClientExternal(client: ClientRow): ClientExternal {
-  return {
+export function toClientExternal(
+  client: ClientRow,
+  includeToken = false
+): ClientExternal {
+  const response: ClientExternal = {
     id: client.id,
-    token: client.token,
     name: client.name,
-    lastUsed: client.last_used
+    lastUsed: client.last_used,
+    createdAt: client.created_at,
+    elevatedUntil: client.elevated_until,
+    expiresAfterInactivitySeconds: client.expires_after_inactivity_seconds
   }
+  if (includeToken) {
+    response.token = client.token
+  }
+  return response
 }
 
 export function toApplicationExternal(
-  app: ApplicationRow
+  app: ApplicationRow,
+  includeToken = false
 ): ApplicationExternal {
-  return {
+  const response: ApplicationExternal = {
     id: app.id,
-    token: app.token,
     name: app.name,
     description: app.description,
     internal: Boolean(app.internal),
     image: app.image ? `image/${app.image}` : 'static/defaultapp.png',
     defaultPriority: app.default_priority,
     lastUsed: app.last_used,
-    sortKey: app.sort_key
+    sortKey: app.sort_key,
+    createdAt: app.created_at
   }
+  if (includeToken) {
+    response.token = app.token
+  }
+  return response
 }
 
 export function toMessageExternal(message: MessageRow): MessageExternal {

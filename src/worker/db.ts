@@ -9,7 +9,8 @@ import type {
   PluginStateRow,
   UserRow
 } from './types'
-import { generateSortKey, generateToken, passwordRounds } from './utils'
+import { generateEnhancedToken, resolveEnhancedToken } from './tokens'
+import { generateSortKey, passwordRounds } from './utils'
 
 let bootstrapPromise: Promise<void> | null = null
 
@@ -76,9 +77,10 @@ async function initializeBootstrap(env: EnvBindings): Promise<void> {
   try {
     await run(
       env.DB,
-      'INSERT INTO users (name, pass, admin) VALUES (?, ?, 1)',
+      'INSERT INTO users (name, pass, admin, created_at) VALUES (?, ?, 1, ?)',
       name,
-      hash
+      hash,
+      new Date().toISOString()
     )
   } catch {
     // Another isolate may have created the user concurrently.
@@ -95,7 +97,7 @@ export function getUserById(
 ): Promise<UserRow | null> {
   return first<UserRow>(
     db,
-    'SELECT id, name, pass, admin FROM users WHERE id = ?',
+    'SELECT id, name, pass, admin, oidc_id, created_at FROM users WHERE id = ?',
     id
   )
 }
@@ -106,15 +108,60 @@ export function getUserByName(
 ): Promise<UserRow | null> {
   return first<UserRow>(
     db,
-    'SELECT id, name, pass, admin FROM users WHERE name = ?',
+    'SELECT id, name, pass, admin, oidc_id, created_at FROM users WHERE name = ?',
     name
   )
+}
+
+export function getUserByOidcId(
+  db: D1Database,
+  oidcId: string
+): Promise<UserRow | null> {
+  return first<UserRow>(
+    db,
+    'SELECT id, name, pass, admin, oidc_id, created_at FROM users WHERE oidc_id = ?',
+    oidcId
+  )
+}
+
+export function getUserOidcId(
+  db: D1Database,
+  userId: number
+): Promise<{ oidc_id: string | null } | null> {
+  return first<{ oidc_id: string | null }>(
+    db,
+    'SELECT oidc_id FROM users WHERE id = ?',
+    userId
+  )
+}
+
+export function linkUserToOidc(
+  db: D1Database,
+  userId: number,
+  oidcId: string
+): Promise<D1Result> {
+  return run(db, 'UPDATE users SET oidc_id = ? WHERE id = ?', oidcId, userId)
+}
+
+export async function createOidcUser(
+  db: D1Database,
+  input: { name: string; oidcId: string }
+): Promise<UserRow> {
+  const result = await run(
+    db,
+    'INSERT INTO users (name, pass, admin, oidc_id, created_at) VALUES (?, ?, 0, ?, ?)',
+    input.name,
+    '',
+    input.oidcId,
+    new Date().toISOString()
+  )
+  return (await getUserById(db, Number(result.meta.last_row_id))) as UserRow
 }
 
 export function getUsers(db: D1Database): Promise<UserRow[]> {
   return all<UserRow>(
     db,
-    'SELECT id, name, pass, admin FROM users ORDER BY id ASC'
+    'SELECT id, name, pass, admin, oidc_id, created_at FROM users ORDER BY id ASC'
   )
 }
 
@@ -124,10 +171,11 @@ export async function createUser(
 ): Promise<UserRow> {
   const result = await run(
     db,
-    'INSERT INTO users (name, pass, admin) VALUES (?, ?, ?)',
+    'INSERT INTO users (name, pass, admin, created_at) VALUES (?, ?, ?, ?)',
     input.name,
     input.pass,
-    input.admin ? 1 : 0
+    input.admin ? 1 : 0,
+    new Date().toISOString()
   )
   return (await getUserById(db, Number(result.meta.last_row_id))) as UserRow
 }
@@ -173,19 +221,34 @@ export function getClientById(
 ): Promise<ClientRow | null> {
   return first<ClientRow>(
     db,
-    'SELECT id, token, user_id, name, last_used FROM clients WHERE id = ?',
+    'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE id = ?',
     id
   )
 }
 
-export function getClientByToken(
+export async function getClientByToken(
   db: D1Database,
   token: string
 ): Promise<ClientRow | null> {
+  const rawToken = token.trim()
+  if (rawToken.startsWith('gtfyc.')) {
+    const direct = await first<ClientRow>(
+      db,
+      'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE token = ?',
+      rawToken
+    )
+    if (direct) {
+      return direct
+    }
+  }
+  const publicToken = await resolveEnhancedToken(token, 'c')
+  if (!publicToken) {
+    return Promise.resolve(null)
+  }
   return first<ClientRow>(
     db,
-    'SELECT id, token, user_id, name, last_used FROM clients WHERE token = ?',
-    token
+    'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE token = ?',
+    publicToken
   )
 }
 
@@ -195,7 +258,7 @@ export function getClientsByUser(
 ): Promise<ClientRow[]> {
   return all<ClientRow>(
     db,
-    'SELECT id, token, user_id, name, last_used FROM clients WHERE user_id = ? ORDER BY id ASC',
+    'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE user_id = ? ORDER BY id ASC',
     userId
   )
 }
@@ -206,41 +269,48 @@ export function getClientsLastUsedBefore(
 ): Promise<ClientRow[]> {
   return all<ClientRow>(
     db,
-    'SELECT id, token, user_id, name, last_used FROM clients WHERE last_used IS NOT NULL AND last_used <= ? ORDER BY id ASC',
+    'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE last_used IS NOT NULL AND last_used <= ? ORDER BY id ASC',
     cutoffIso
   )
 }
 
 export async function createClient(
   db: D1Database,
-  input: { name: string; userId: number }
-): Promise<ClientRow> {
-  let token = ''
-  while (!token) {
-    const candidate = generateToken('C')
-    if ((await getClientByToken(db, candidate)) === null) {
-      token = candidate
-    }
+  input: {
+    name: string
+    userId: number
+    elevatedUntil?: string | null
+    expiresAfterInactivitySeconds?: number
   }
+): Promise<ClientRow> {
+  const tokens = await generateEnhancedToken('c')
 
   const result = await run(
     db,
-    'INSERT INTO clients (token, user_id, name, last_used) VALUES (?, ?, ?, NULL)',
-    token,
+    'INSERT INTO clients (token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds) VALUES (?, ?, ?, NULL, ?, ?, ?)',
+    tokens.publicToken,
     input.userId,
-    input.name
+    input.name,
+    new Date().toISOString(),
+    input.elevatedUntil ?? null,
+    input.expiresAfterInactivitySeconds ?? 0
   )
-  return (await getClientById(db, Number(result.meta.last_row_id))) as ClientRow
+  const created = (await getClientById(
+    db,
+    Number(result.meta.last_row_id)
+  )) as ClientRow
+  return { ...created, token: tokens.privateToken }
 }
 
 export async function updateClient(
   db: D1Database,
-  input: { id: number; name: string }
+  input: { id: number; name: string; expiresAfterInactivitySeconds?: number }
 ): Promise<ClientRow> {
   await run(
     db,
-    'UPDATE clients SET name = ? WHERE id = ?',
+    'UPDATE clients SET name = ?, expires_after_inactivity_seconds = COALESCE(?, expires_after_inactivity_seconds) WHERE id = ?',
     input.name,
+    input.expiresAfterInactivitySeconds ?? null,
     input.id
   )
   return (await getClientById(db, input.id)) as ClientRow
@@ -248,6 +318,27 @@ export async function updateClient(
 
 export function deleteClient(db: D1Database, id: number): Promise<D1Result> {
   return run(db, 'DELETE FROM clients WHERE id = ?', id)
+}
+
+export function updateClientElevation(
+  db: D1Database,
+  id: number,
+  elevatedUntil: string | null
+): Promise<D1Result> {
+  return run(db, 'UPDATE clients SET elevated_until = ? WHERE id = ?', elevatedUntil, id)
+}
+
+export function getClientByIdForUser(
+  db: D1Database,
+  id: number,
+  userId: number
+): Promise<ClientRow | null> {
+  return first<ClientRow>(
+    db,
+    'SELECT id, token, user_id, name, last_used, created_at, elevated_until, expires_after_inactivity_seconds FROM clients WHERE id = ? AND user_id = ?',
+    id,
+    userId
+  )
 }
 
 export function touchClient(
@@ -269,19 +360,34 @@ export function getApplicationById(
 ): Promise<ApplicationRow | null> {
   return first<ApplicationRow>(
     db,
-    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key FROM applications WHERE id = ?',
+    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key, created_at FROM applications WHERE id = ?',
     id
   )
 }
 
-export function getApplicationByToken(
+export async function getApplicationByToken(
   db: D1Database,
   token: string
 ): Promise<ApplicationRow | null> {
+  const rawToken = token.trim()
+  if (rawToken.startsWith('gtfya.')) {
+    const direct = await first<ApplicationRow>(
+      db,
+      'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key, created_at FROM applications WHERE token = ?',
+      rawToken
+    )
+    if (direct) {
+      return direct
+    }
+  }
+  const publicToken = await resolveEnhancedToken(token, 'a')
+  if (!publicToken) {
+    return Promise.resolve(null)
+  }
   return first<ApplicationRow>(
     db,
-    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key FROM applications WHERE token = ?',
-    token
+    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key, created_at FROM applications WHERE token = ?',
+    publicToken
   )
 }
 
@@ -291,7 +397,7 @@ export function getApplicationsByUser(
 ): Promise<ApplicationRow[]> {
   return all<ApplicationRow>(
     db,
-    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key FROM applications WHERE user_id = ? ORDER BY sort_key ASC, id ASC',
+    'SELECT id, token, user_id, name, description, internal, image, default_priority, last_used, sort_key, created_at FROM applications WHERE user_id = ? ORDER BY sort_key ASC, id ASC',
     userId
   )
 }
@@ -306,30 +412,26 @@ export async function createApplication(
     sortKey?: string
   }
 ): Promise<ApplicationRow> {
-  let token = ''
-  while (!token) {
-    const candidate = generateToken('A')
-    if ((await getApplicationByToken(db, candidate)) === null) {
-      token = candidate
-    }
-  }
+  const tokens = await generateEnhancedToken('a')
 
   const result = await run(
     db,
     `INSERT INTO applications
       (token, user_id, name, description, internal, image, default_priority, last_used, sort_key)
-      VALUES (?, ?, ?, ?, 0, '', ?, NULL, ?)`,
-    token,
+      VALUES (?, ?, ?, ?, 0, '', ?, NULL, ?, ?)`,
+    tokens.publicToken,
     input.userId,
     input.name,
     input.description,
     input.defaultPriority,
-    input.sortKey?.trim() || generateSortKey()
+    input.sortKey?.trim() || generateSortKey(),
+    new Date().toISOString()
   )
-  return (await getApplicationById(
+  const created = (await getApplicationById(
     db,
     Number(result.meta.last_row_id)
   )) as ApplicationRow
+  return { ...created, token: tokens.privateToken }
 }
 
 export async function updateApplication(
@@ -354,6 +456,18 @@ export async function updateApplication(
     input.id
   )
   return (await getApplicationById(db, input.id)) as ApplicationRow
+}
+
+export async function regenerateApplicationToken(
+  db: D1Database,
+  id: number
+): Promise<{ application: ApplicationRow; privateToken: string }> {
+  const tokens = await generateEnhancedToken('a')
+  await run(db, 'UPDATE applications SET token = ? WHERE id = ?', tokens.publicToken, id)
+  return {
+    application: (await getApplicationById(db, id)) as ApplicationRow,
+    privateToken: tokens.privateToken
+  }
 }
 
 export async function deleteApplication(

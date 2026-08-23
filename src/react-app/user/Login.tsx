@@ -22,6 +22,11 @@ const Login = observer(() => {
   React.useEffect(() => {
     if (currentUser.loggedIn) {
       navigate('/')
+    } else if (config.get('oidc') && config.get('oidcAutoRedirect')) {
+      const name = `${window.navigator.platform || 'Browser'} ${window.navigator.userAgent}`
+      window.location.assign(
+        `${config.get('url')}auth/oidc/login?name=${encodeURIComponent(name)}`
+      )
     }
   }, [currentUser.loggedIn])
   const registerButton = () => {
@@ -52,46 +57,67 @@ const Login = observer(() => {
             onSubmit={(e) => e.preventDefault()}
             id="login-form"
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <TextField
-              autoFocus
-              id="username"
-              className="name"
-              label={t('username')}
-              name="username"
-              margin="dense"
-              autoComplete="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              id="password"
-              type="password"
-              className="password"
-              label={t('password')}
-              name="password"
-              margin="normal"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              size="large"
-              fullWidth
-              className="login"
-              color="primary"
-              disabled={
-                !!currentUser.connectionErrorMessage ||
-                currentUser.authenticating
-              }
-              style={{ marginTop: 15, marginBottom: 5 }}
-              loading={currentUser.authenticating}
-              onClick={login}>
-              {t('login')}
-            </Button>
+            {config.get('localAuth') && (
+              <>
+                <TextField
+                  autoFocus
+                  id="username"
+                  className="name"
+                  label={t('username')}
+                  name="username"
+                  margin="dense"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  id="password"
+                  type="password"
+                  className="password"
+                  label={t('password')}
+                  name="password"
+                  margin="normal"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  className="login"
+                  color="primary"
+                  disabled={
+                    !!currentUser.connectionErrorMessage ||
+                    currentUser.authenticating
+                  }
+                  style={{ marginTop: 15, marginBottom: 5 }}
+                  loading={currentUser.authenticating}
+                  onClick={login}>
+                  {t('login')}
+                </Button>
+              </>
+            )}
+            {config.get('oidc') && (
+              <Button
+                type="button"
+                variant="outlined"
+                size="large"
+                fullWidth
+                className="oidc-login"
+                style={{ marginTop: config.get('localAuth') ? 5 : 15 }}
+                onClick={() => {
+                  const name = `${window.navigator.platform || 'Browser'} ${window.navigator.userAgent}`
+                  window.location.assign(
+                    `${config.get('url')}auth/oidc/login?name=${encodeURIComponent(name)}`
+                  )
+                }}>
+                {t('login')} · {config.get('oidcIdpName')}
+              </Button>
+            )}
           </form>
         </Container>
       </Grid>

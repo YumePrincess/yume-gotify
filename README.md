@@ -108,9 +108,10 @@ the assistant contract without confusing it with the Gotify server version:
 
 Keep the two values separate when upgrading either component.
 
-The `assets.run_worker_first` rule routes `/auth/oidc/*` through the Worker
-before the SPA fallback. This is required for browser OIDC redirects and the
-OIDC callback; otherwise Cloudflare can serve `index.html` at the OAuth URL.
+The `assets.run_worker_first` rules route the dynamic API, authentication,
+message, plugin, iGotify, and OIDC paths through the Worker before the SPA
+fallback. This is required so API responses remain JSON and browser OIDC
+redirects/callbacks are not replaced by `index.html`.
 
 ### Gotify 3 authentication
 
@@ -140,7 +141,7 @@ production placeholders currently used by this project):
     "GOTIFY_OIDC_ENABLED": "true",
     "GOTIFY_OIDC_ISSUER": "https://account.yume.zone",
     "GOTIFY_OIDC_CLIENTID": "replace-with-client-id",
-    "GOTIFY_OIDC_USERNAMECLAIM": "preferred_username",
+    "GOTIFY_OIDC_USERNAMECLAIM": "email",
     "GOTIFY_OIDC_REDIRECTURL": "https://gotify.yume.zone/auth/oidc/callback",
     "GOTIFY_OIDC_AUTOREGISTER": "true",
     "GOTIFY_OIDC_LINK_BY_USERNAME": "false",
@@ -162,6 +163,10 @@ clients use the PKCE endpoints:
 The native redirect URI should be `gotify://oidc/callback`, matching the Gotify
 3 client contract. Both flows validate the issuer, audience, nonce, expiry,
 JWKS signature, and PKCE verifier before creating a client session.
+
+The configured username claim is tried first. If it is empty, the Worker falls
+back to `preferred_username`, `email`, `name`, and `nickname` so providers with
+different standard profile claims can still create a local user.
 
 ### Background image
 

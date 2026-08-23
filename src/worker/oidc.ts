@@ -337,9 +337,21 @@ async function resolveUser(
   }
 
   const usernameClaim = envValue(env, 'GOTIFY_OIDC_USERNAMECLAIM') || 'preferred_username'
-  const username = maybeString(userInfo[usernameClaim] ?? claims[usernameClaim]).trim()
+  const usernameClaims = [...new Set([
+    usernameClaim,
+    'preferred_username',
+    'email',
+    'name',
+    'nickname'
+  ])]
+  const username = usernameClaims
+    .map((claim) => maybeString(userInfo[claim] ?? claims[claim]).trim())
+    .find(Boolean) ?? ''
   if (!username) {
-    throw new ApiError(500, `OIDC username claim '${usernameClaim}' is empty`)
+    throw new ApiError(
+      500,
+      `OIDC username claims '${usernameClaims.join(', ')}' are empty`
+    )
   }
   const byUsername = await getUserByName(env.DB, username)
   if (byUsername) {

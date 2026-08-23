@@ -104,6 +104,13 @@ function truncateUtf8(value: string, maxBytes: number): string {
   return `${output}${suffix}`
 }
 
+function truncateIgotifyBody(value: string): string {
+  const characters = Array.from(value)
+  return characters.length > 150
+    ? `${characters.slice(0, 150).join('')}...`
+    : value
+}
+
 export function normalizeIgotifyPreviewText(value: string): string {
   return value
     .replace(previewControlCharsPattern, ' ')
@@ -124,7 +131,7 @@ function notificationText(input: IgotifySecNtfyNotificationInput): {
 
   return {
     title: title || defaultNotificationTitle,
-    body: body || title || defaultNotificationBody
+    body: truncateIgotifyBody(body || title || defaultNotificationBody)
   }
 }
 
@@ -225,7 +232,10 @@ function parseSpkiPublicKey(der: Uint8Array): RsaPublicKey {
 }
 
 function publicKeyDer(publicKey: string): Uint8Array {
-  const keyText = publicKey.trim()
+  const keyText = publicKey
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\\r?\\n/g, '\n')
   const base64 = keyText.includes('BEGIN')
     ? keyText.replace(/-----BEGIN [^-]+-----|-----END [^-]+-----|\s+/g, '')
     : keyText
@@ -410,16 +420,44 @@ export async function sendIgotifySecNtfyNotification(
   const publicKey = await getIgotifyPublicKeyFromDevice(env, input.deviceToken)
   const payload = buildIgotifySecNtfyPayload(publicKey, input)
 
+  if (String(env.ENABLE_CONSOLE_LOG ?? 'true') !== 'false') {
+    console.info(
+      JSON.stringify({
+        event: 'igotify_secntfy_payload_built',
+        deviceToken: maskSecret(input.deviceToken),
+        publicKeyBytes: Buffer.from(publicKeyDer(publicKey)).byteLength,
+        titleBytes: utf8ByteLength(notificationText(input).title),
+        bodyBytes: utf8ByteLength(notificationText(input).body),
+        imageBytes: utf8ByteLength(input.imageUrl ?? ''),
+        mutablecontent: payload.notification.mutablecontent
+      })
+    )
+  }
+
   const response = await fetch(`${secNtfyUrl(env)}/Message`, {
     method: 'POST',
     headers: jsonHeaders(input.deviceToken),
     body: JSON.stringify(payload)
   })
 
-  const data = (await response
-    .json()
-    .catch(() => null)) as Partial<IgotifySecNtfyResult> | null
+  const data = (await response.json().catch(() => null)) as
+    | (Partial<IgotifySecNtfyResult> & {
+        message?: string
+        error?: string
+        status?: number
+      })
+    | null
   if (!data) {
+    if (String(env.ENABLE_CONSOLE_LOG ?? 'true') !== 'false') {
+      console.error(
+        JSON.stringify({
+          event: 'igotify_secntfy_send_failed',
+          deviceToken: maskSecret(input.deviceToken),
+          status: response.status,
+          reason: 'empty-response'
+        })
+      )
+    }
     return {
       Message: 'Response is null or empty!',
       Error: 'Response is null or empty!',
@@ -427,9 +465,34 @@ export async function sendIgotifySecNtfyNotification(
     }
   }
 
-  return {
-    Message: data.Message ?? '',
-    Error: data.Error ?? '',
-    Status: data.Status ?? response.status
+  const result = {
+    Message: data.Message ?? data.message ?? '',
+    Error: data.Error ?? data.error ?? '',
+    Status: data.Status ?? data.status ?? response.status
   }
+
+  if (String(env.ENABLE_CONSOLE_LOG ?? 'true') !== 'false') {
+    const event =
+      result.Status >= 200 && result.Status < 300
+        ? 'igotify_secntfy_sent'
+        : 'igotify_secntfy_send_failed'
+    console.info(
+      JSON.stringify({
+        event,
+        deviceToken: maskSecret(input.deviceToken),
+        status: result.Status,
+        responseMessage: result.Message || undefined,
+        responseError: result.Error || undefined
+      })
+    )
+  }
+
+  return result
+}
+
+function maskSecret(value: string): string {
+  if (value.length <= 8) {
+    return '<redacted>'
+  }
+  return `${value.slice(0, 4)}…${value.slice(-4)}`
 }

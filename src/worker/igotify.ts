@@ -48,6 +48,13 @@ function shouldLog(env: EnvBindings): boolean {
   return String(env.ENABLE_CONSOLE_LOG ?? 'true') !== 'false'
 }
 
+function maskSecret(value: string): string {
+  if (value.length <= 8) {
+    return '<redacted>'
+  }
+  return `${value.slice(0, 4)}…${value.slice(-4)}`
+}
+
 function logIgotifyError(
   env: EnvBindings,
   event: string,
@@ -127,23 +134,52 @@ function currentOrigin(request: Request): string {
   return new URL(request.url).origin.replace(/\/+$/, '')
 }
 
+function normalizeGotifyUrl(value: string): string {
+  const trimmed = value.trim().replace(/["']+$/g, '')
+  const parsed = new URL(trimmed)
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('GotifyUrl must use http or https')
+  }
+
+  // The reference Assistant builds the image URL from the Gotify base URL,
+  // not from `/stream` or a WebSocket URL. Keep any reverse-proxy path prefix.
+  const pathname = parsed.pathname.replace(/\/+$/, '').replace(/\/stream$/i, '')
+  return `${parsed.origin}${pathname === '/' ? '' : pathname}`
+}
+
 function validateRegistration(
   input: IgotifyDeviceRegistration,
-  gotifyUrl: string
+  fallbackGotifyUrl: string
 ): IgotifyValidatedDeviceRegistration | Response {
   const clientToken = (input.ClientToken ?? input.clientToken ?? '').trim()
   const deviceToken = (input.DeviceToken ?? input.deviceToken ?? '').trim()
+  const submittedGotifyUrl = (
+    input.GotifyUrl ??
+    input.gotifyUrl ??
+    fallbackGotifyUrl
+  ).trim()
 
   if (
     clientToken.length === 0 ||
     clientToken === 'string' ||
     !gotifyClientTokenPattern.test(clientToken) ||
-    deviceToken === 'string'
+    deviceToken.length === 0 ||
+    deviceToken === 'string' ||
+    submittedGotifyUrl.length === 0 ||
+    submittedGotifyUrl === 'string'
   ) {
     return ok('Fehler beim hinzugefuegen des Geraetes!', false)
   }
 
-  return { clientToken, deviceToken, gotifyUrl }
+  try {
+    return {
+      clientToken,
+      deviceToken,
+      gotifyUrl: normalizeGotifyUrl(submittedGotifyUrl)
+    }
+  } catch {
+    return ok('Fehler beim hinzugefuegen des Geraetes!', false)
+  }
 }
 
 function serializeHeaders(
@@ -289,6 +325,17 @@ async function handleDevicePost(
     registration,
     latest?.id ?? 0
   )
+  if (shouldLog(env)) {
+    console.info(
+      JSON.stringify({
+        event: 'igotify_device_registered',
+        registered,
+        clientToken: maskSecret(registration.clientToken),
+        deviceToken: maskSecret(registration.deviceToken),
+        gotifyUrl: registration.gotifyUrl
+      })
+    )
+  }
   return registered
     ? ok('Geraet erfolgreich hinzugefuegt', true)
     : ok('Fehler beim hinzugefuegen des Geraetes!', false)

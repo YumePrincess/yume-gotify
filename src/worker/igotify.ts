@@ -30,6 +30,7 @@ import { toMessageExternal } from './utils'
 // seed encoded without padding (49 characters total).
 const gotifyClientTokenPattern = /^gtfyc\.[A-Za-z0-9_-]{43}$/
 const pendingMessagesPerDevice = 50
+const concurrentDeviceDeliveries = 4
 
 const igotifyCorsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -271,14 +272,18 @@ async function forwardIgotifyMessageToDevice(
   }
 
   try {
-    const result = await sendIgotifySecNtfyNotification(env, {
-      deviceToken: device.deviceToken,
-      title: message.title,
-      body: message.message,
-      critical: message.priority === 10,
-      imageUrl: buildGotifyImageUrl(device, message, fallbackGotifyUrl),
-      priority: message.priority
-    })
+    const result = await sendIgotifySecNtfyNotification(
+      env,
+      {
+        deviceToken: device.deviceToken,
+        title: message.title,
+        body: message.message,
+        critical: message.priority === 10,
+        imageUrl: buildGotifyImageUrl(device, message, fallbackGotifyUrl),
+        priority: message.priority
+      },
+      device.keyVersion
+    )
 
     if (!result || result.Status < 200 || result.Status >= 300) {
       throw new Error(
@@ -551,22 +556,37 @@ export async function deliverIgotifyMessage(
     failed: 0
   }
 
-  for (const device of devices) {
-    try {
-      if (
-        await forwardIgotifyMessageToDevice(env, device, message, gotifyUrl)
-      ) {
-        summary.forwarded += 1
+  // Keep a slow device from delaying all other recipients, while bounding
+  // outgoing requests for users with many registered devices.
+  const pending = devices.values()
+  await Promise.all(
+    Array.from(
+      { length: Math.min(concurrentDeviceDeliveries, devices.length) },
+      async () => {
+        for (const device of pending) {
+          try {
+            if (
+              await forwardIgotifyMessageToDevice(
+                env,
+                device,
+                message,
+                gotifyUrl
+              )
+            ) {
+              summary.forwarded += 1
+            }
+          } catch (error) {
+            summary.failed += 1
+            logIgotifyError(env, 'igotify_delivery_failed', {
+              uid: device.uid,
+              messageId: message.id,
+              error: error instanceof Error ? error.message : String(error)
+            })
+          }
+        }
       }
-    } catch (error) {
-      summary.failed += 1
-      logIgotifyError(env, 'igotify_delivery_failed', {
-        uid: device.uid,
-        messageId: message.id,
-        error: error instanceof Error ? error.message : String(error)
-      })
-    }
-  }
+    )
+  )
 
   return summary
 }

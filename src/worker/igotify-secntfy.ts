@@ -13,6 +13,7 @@ const previewControlCharsPattern =
   // oxlint-disable-next-line no-control-regex -- These explicit C0/DEL ranges intentionally exclude whitespace controls.
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g
 const textEncoder = new TextEncoder()
+const publicKeyCacheSeconds = 300
 
 interface SecNtfyDeviceResponse {
   Message?: string
@@ -383,8 +384,30 @@ export function buildIgotifySecNtfyPayload(
 
 export async function getIgotifyPublicKeyFromDevice(
   env: EnvBindings,
-  deviceToken: string
+  deviceToken: string,
+  keyVersion?: string
 ): Promise<string> {
+  // Use a registration generation in the key: re-registration invalidates the
+  // cached key in every data center, even when the device token stays the same.
+  let cache: Cache | undefined
+  let cacheKey: string | undefined
+  if (keyVersion) {
+    try {
+      const digest = await crypto.subtle.digest(
+        'SHA-256',
+        utf8Bytes(JSON.stringify([secNtfyUrl(env), deviceToken, keyVersion]))
+      )
+      cacheKey = `${secNtfyUrl(env)}/.well-known/igotify-key-cache/${Buffer.from(digest).toString('hex')}`
+      cache = await caches.open('igotify-public-keys')
+      const cached = await cache.match(cacheKey)
+      if (cached) {
+        return await cached.text()
+      }
+    } catch {
+      // Cache availability must never prevent delivery.
+    }
+  }
+
   const response = await fetch(`${secNtfyUrl(env)}/Message/Device`, {
     headers: jsonHeaders(deviceToken)
   })
@@ -402,12 +425,26 @@ export async function getIgotifyPublicKeyFromDevice(
     )
   }
 
+  // Do not retain a malformed key returned by the upstream service.
+  parsePublicKey(token)
+  if (cache && cacheKey) {
+    await cache
+      .put(
+        cacheKey,
+        new Response(token, {
+          headers: { 'Cache-Control': `max-age=${publicKeyCacheSeconds}` }
+        })
+      )
+      .catch(() => undefined)
+  }
+
   return token
 }
 
 export async function sendIgotifySecNtfyNotification(
   env: EnvBindings,
-  input: IgotifySecNtfyNotificationInput
+  input: IgotifySecNtfyNotificationInput,
+  keyVersion?: string
 ): Promise<IgotifySecNtfyResult | null> {
   if (!input.deviceToken.includes(deviceTokenPrefix)) {
     return {
@@ -417,7 +454,13 @@ export async function sendIgotifySecNtfyNotification(
     }
   }
 
-  const publicKey = await getIgotifyPublicKeyFromDevice(env, input.deviceToken)
+  const startedAt = Date.now()
+  const publicKey = await getIgotifyPublicKeyFromDevice(
+    env,
+    input.deviceToken,
+    keyVersion
+  )
+  const publicKeyMs = Date.now() - startedAt
   const payload = buildIgotifySecNtfyPayload(publicKey, input)
 
   if (String(env.ENABLE_CONSOLE_LOG ?? 'true') !== 'false') {
@@ -479,6 +522,8 @@ export async function sendIgotifySecNtfyNotification(
     console.info(
       JSON.stringify({
         event,
+        durationMs: Date.now() - startedAt,
+        publicKeyMs,
         deviceToken: maskSecret(input.deviceToken),
         status: result.Status,
         responseMessage: result.Message || undefined,

@@ -1,5 +1,8 @@
-import { env } from 'cloudflare:workers'
+import { env, exports } from 'cloudflare:workers'
 import { describe, expect, it } from 'vitest'
+
+import { createApplication, createClient, createUser } from '../src/worker/db'
+import { ensureMigrations } from '../src/worker/migrations'
 
 function waitForMessage(socket: WebSocket): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -20,6 +23,54 @@ function waitForMessage(socket: WebSocket): Promise<string> {
 }
 
 describe('StreamHub', () => {
+  it('pushes a saved message through the authenticated API without polling', async () => {
+    await ensureMigrations(env.DB)
+    const user = await createUser(env.DB, {
+      name: crypto.randomUUID(),
+      pass: '',
+      admin: false
+    })
+    const client = await createClient(env.DB, {
+      name: 'stream',
+      userId: user.id
+    })
+    const application = await createApplication(env.DB, {
+      userId: user.id,
+      name: 'realtime',
+      description: '',
+      defaultPriority: 5
+    })
+    const upgrade = await exports.default.fetch(
+      new Request('https://gotify.test/stream', {
+        headers: { Upgrade: 'websocket', 'X-Gotify-Key': client.token }
+      })
+    )
+    expect(upgrade.status).toBe(101)
+    const socket = upgrade.webSocket!
+    socket.accept()
+    try {
+      const received = waitForMessage(socket)
+      const response = await exports.default.fetch(
+        new Request('https://gotify.test/message', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'X-Gotify-Key': application.token
+          },
+          body: JSON.stringify({
+            message: 'instant delivery',
+            title: 'realtime'
+          })
+        })
+      )
+      expect(response.status).toBe(200)
+      const saved = await response.json()
+      expect(JSON.parse(await received)).toEqual(saved)
+    } finally {
+      socket.close(1000, 'test finished')
+    }
+  })
+
   it('broadcasts published payloads to newly connected WebSockets', async () => {
     const id = env.STREAM_HUB.idFromName('unit-test-user')
     const stub = env.STREAM_HUB.get(id)

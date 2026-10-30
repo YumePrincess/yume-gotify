@@ -11,6 +11,7 @@ export default defineConfig({
       miniflare: {
         compatibilityDate: '2025-11-25',
         compatibilityFlags: ['nodejs_compat'],
+        d1Databases: ['DB'],
         durableObjects: {
           STREAM_HUB: 'StreamHub'
         }

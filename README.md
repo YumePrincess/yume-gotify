@@ -177,6 +177,15 @@ the existing registration's SecNtfy device token and public-key association
 instead of rejecting the same Gotify client token. This prevents iOS from
 falling back to its generic “Please tap here to see the message.” preview.
 
+New messages start iGotify forwarding immediately after being saved, alongside
+the Gotify WebSocket broadcast. Up to four devices are notified concurrently.
+SecNtfy public keys are cached at the edge for five minutes; every device
+registration changes the cache generation so rotated keys take effect across
+data centers, including when the SecNtfy device token stays the same.
+The `igotify_secntfy_sent` log includes `durationMs` and `publicKeyMs` for
+server-side latency diagnosis. Device display time still depends on SecNtfy,
+Apple push delivery, and the iOS notification extension.
+
 The configured username claim is tried first. If it is empty, the Worker falls
 back to `preferred_username`, `email`, `name`, and `nickname` so providers with
 different standard profile claims can still create a local user.

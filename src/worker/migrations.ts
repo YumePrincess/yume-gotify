@@ -5,6 +5,7 @@ import migration0004 from '../../migrations/0004_client_token_cleanup_plugin.sql
 import migration0005 from '../../migrations/0005_igotify_devices.sql?raw'
 import migration0006 from '../../migrations/0006_auth_oidc.sql?raw'
 import migration0007 from '../../migrations/0007_gotify_v3_metadata.sql?raw'
+import migration0008 from '../../migrations/0008_igotify_key_version.sql?raw'
 
 const MIGRATIONS = [
   { name: '0001_init.sql', sql: migration0001 },
@@ -13,7 +14,8 @@ const MIGRATIONS = [
   { name: '0004_client_token_cleanup_plugin.sql', sql: migration0004 },
   { name: '0005_igotify_devices.sql', sql: migration0005 },
   { name: '0006_auth_oidc.sql', sql: migration0006 },
-  { name: '0007_gotify_v3_metadata.sql', sql: migration0007 }
+  { name: '0007_gotify_v3_metadata.sql', sql: migration0007 },
+  { name: '0008_igotify_key_version.sql', sql: migration0008 }
 ] as const
 
 let migrationsPromise: Promise<void> | null = null

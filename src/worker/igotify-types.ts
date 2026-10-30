@@ -29,6 +29,7 @@ export interface IgotifyDeviceRow {
   last_message_id: number
   disabled_at: string | null
   disabled_reason: string | null
+  key_version: string
 }
 
 export interface IgotifyDeviceRecord {
@@ -40,6 +41,7 @@ export interface IgotifyDeviceRecord {
   lastMessageId: number
   disabledAt: string | null
   disabledReason: string | null
+  keyVersion: string
 }
 
 export interface IgotifySecNtfyResult {

@@ -13,7 +13,8 @@ function mapDevice(row: IgotifyDeviceRow): IgotifyDeviceRecord {
     headers: row.headers,
     lastMessageId: row.last_message_id,
     disabledAt: row.disabled_at,
-    disabledReason: row.disabled_reason
+    disabledReason: row.disabled_reason,
+    keyVersion: row.key_version
   }
 }
 
@@ -58,7 +59,7 @@ export async function listIgotifyDevices(
 ): Promise<IgotifyDeviceRecord[]> {
   const rows = await all<IgotifyDeviceRow>(
     db,
-    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason
+    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason, key_version
      FROM igotify_devices
      WHERE disabled_at IS NULL
      ORDER BY uid ASC`
@@ -77,7 +78,7 @@ export async function listIgotifyDevicesByClientTokens(
   const placeholders = clientTokens.map(() => '?').join(', ')
   const rows = await all<IgotifyDeviceRow>(
     db,
-    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason
+    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason, key_version
      FROM igotify_devices
      WHERE disabled_at IS NULL AND client_token IN (${placeholders})
      ORDER BY uid ASC`,
@@ -95,7 +96,7 @@ export async function getIgotifyDeviceByToken(
     : 'client_token'
   const row = await first<IgotifyDeviceRow>(
     db,
-    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason
+    `SELECT uid, client_token, device_token, gotify_url, headers, last_message_id, disabled_at, disabled_reason, key_version
      FROM igotify_devices
      WHERE ${column} = ? AND disabled_at IS NULL
      LIMIT 1`,
@@ -120,18 +121,20 @@ export async function upsertIgotifyDevice(
   const result = await run(
     db,
     `INSERT INTO igotify_devices
-      (client_token, device_token, gotify_url, headers, last_message_id)
-     VALUES (?, ?, ?, '[]', ?)
+      (client_token, device_token, gotify_url, headers, last_message_id, key_version)
+     VALUES (?, ?, ?, '[]', ?, ?)
      ON CONFLICT(client_token) DO UPDATE SET
        device_token = excluded.device_token,
        gotify_url = excluded.gotify_url,
+       key_version = excluded.key_version,
        disabled_at = NULL,
        disabled_reason = NULL,
        updated_at = CURRENT_TIMESTAMP`,
     registration.clientToken,
     registration.deviceToken,
     registration.gotifyUrl,
-    lastMessageId
+    lastMessageId,
+    crypto.randomUUID()
   )
   return result.success
 }

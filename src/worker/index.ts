@@ -782,7 +782,6 @@ app.post('/message', requireApplicationOrClient, async (c) => {
   })
 
   const external = toMessageExternal(created)
-  await publishToUserStream(c.env, auth.userId, external)
   c.executionCtx.waitUntil(
     deliverIgotifyMessage(
       c.env,
@@ -791,6 +790,7 @@ app.post('/message', requireApplicationOrClient, async (c) => {
       new URL(c.req.url).origin
     ).then(() => undefined)
   )
+  await publishToUserStream(c.env, auth.userId, external)
   return c.json(external)
 })
 

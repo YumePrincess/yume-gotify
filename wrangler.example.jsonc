@@ -1,0 +1,114 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gotify-worker",
+  "main": "./src/worker/index.ts",
+  "compatibility_date": "2026-08-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true
+  },
+  "upload_source_maps": true,
+  "secrets": {
+    "required": ["GOTIFY_DEFAULTUSER_PASS", "GOTIFY_OIDC_CLIENTSECRET"]
+  },
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    // Dynamic API and OAuth routes must reach the Worker before the SPA fallback.
+    "run_worker_first": [
+      "/api/*",
+      "/auth/*",
+      "/application",
+      "/application/*",
+      "/client",
+      "/client/*",
+      "/config",
+      "/current/*",
+      "/gotifyinfo",
+      "/health",
+      "/image/*",
+      "/message",
+      "/message/*",
+      "/plugin",
+      "/plugin/*",
+      "/stream",
+      "/user",
+      "/user/*",
+      "/version",
+      "/Version"
+    ]
+  },
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gotify-db"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "APP_IMAGES"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "STREAM_HUB",
+        "class_name": "StreamHub"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["StreamHub"]
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "gotify.example.com",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "GOTIFY_REGISTRATION": "false",
+    "GOTIFY_DEFAULTUSER_NAME": "admin",
+    "GOTIFY_PASSSTRENGTH": "10",
+    // Password login can be enabled together with Gotify 3 OIDC.
+    "GOTIFY_LOCALAUTH_ENABLED": "false",
+    "GOTIFY_OIDC_ENABLED": "true",
+    "GOTIFY_OIDC_ISSUER": "https://account.example.com",
+    "GOTIFY_OIDC_CLIENTID": "replace-with-client-id",
+    "GOTIFY_OIDC_USERNAMECLAIM": "email",
+    "GOTIFY_OIDC_REDIRECTURL": "https://gotify.example.com/auth/oidc/callback",
+    "GOTIFY_OIDC_AUTOREGISTER": "true",
+    "GOTIFY_OIDC_LINK_BY_USERNAME": "true",
+    "GOTIFY_OIDC_SCOPES": "openid,profile,email",
+    "GOTIFY_OIDC_IDP_NAME": "OIDC Account",
+    "GOTIFY_OIDC_AUTO_REDIRECT": "false",
+    "GOTIFY_OIDC_PROMPT": "login",
+    "GOTIFY_SERVER_SECURECOOKIE": "true",
+    "GOTIFY_VERSION": "3.0.0",
+    "GOTIFY_COMMIT": "unknown",
+    "GOTIFY_BUILD_DATE": "unknown",
+    // Bundled assets; override with an absolute HTTP(S) URL if needed.
+    "GOTIFY_BACKGROUND_IMAGE_URL": "/static/yume-background.jpg",
+    "GOTIFY_LOGO_BAR_URL": "/static/yume-logo-bar.png",
+    // Set true and replace the example domain to share preferences across subdomains.
+    "GOTIFY_CROSS_SITE_PREFERENCE_SYNC": "false",
+    "GOTIFY_PREFERENCE_COOKIE_DOMAIN": ".example.com",
+    // Restrict app image objects to a dedicated prefix inside the shared R2 bucket.
+    "APP_IMAGES_PREFIX": "gotify/",
+    "CORS_ALLOW_ORIGIN": "",
+    "SECNTFY_SERVER_URL": "https://api.secntfy.app",
+    "IGOTIFY_VERSION": "1.6.0.0",
+    "IGOTIFY_BUILD_DATE": "unknown",
+    "IGOTIFY_COMMIT": "unknown",
+    "ENABLE_CONSOLE_LOG": "true"
+  }
+}

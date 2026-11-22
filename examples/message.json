@@ -1,0 +1,5 @@
+{
+  "title": "Example notification",
+  "message": "Sent from the Yume Gotify example script.",
+  "priority": 5
+}

@@ -1,3 +1,4 @@
+/* MiSans Regular by Xiaomi; see THIRD_PARTY_NOTICES.md. */
 @font-face {
   font-family: 'MiSans';
   src: url('/static/fonts/MiSans-Regular.woff2') format('woff2');
@@ -9,7 +10,7 @@
 :root {
   color-scheme: light dark;
   --page-background-color: #f3ece5;
-  --page-background-image: url('/static/yume-background.webp');
+  --page-background-image: url('/static/yume-background.jpg');
   --page-overlay: linear-gradient(
     180deg,
     rgba(255, 248, 241, 0.16),

@@ -1,0 +1,8 @@
+{
+  "vars": {
+    "GOTIFY_BACKGROUND_IMAGE_URL": "/static/yume-background.jpg",
+    "GOTIFY_LOGO_BAR_URL": "/static/yume-logo-bar.png",
+    "GOTIFY_CROSS_SITE_PREFERENCE_SYNC": "false",
+    "GOTIFY_PREFERENCE_COOKIE_DOMAIN": ".example.com"
+  }
+}

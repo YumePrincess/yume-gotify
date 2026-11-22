@@ -1,21 +1,43 @@
 <p align="center">
+  <a href="./README.md"><kbd>English</kbd></a>
+  <a href="./README.zh-CN.md"><kbd>简体中文</kbd></a>
+  <a href="./README.zh-TW.md"><kbd>繁體中文</kbd></a>
+  <a href="./README.ja.md"><kbd>日本語</kbd></a>
+  <a href="./README.fr.md"><kbd>Français</kbd></a>
+</p>
+
+<p align="center">
   <img width="180" src="./public/static/yume-logo.png" alt="Yume Gotify logo" />
+</p>
+
+<p align="center">
+  <img width="360" src="./public/static/yume-logo-bar.png" alt="Yume Gotify Logo Bar" />
 </p>
 
 <h1 align="center">Yume Gotify</h1>
 
 <p align="center">
-  A multilingual Gotify 3.x-compatible notification service for Cloudflare Workers.
+  A serverless, multilingual Gotify 3-compatible notification service deployed on Cloudflare Workers.
 </p>
 
 ## Introduction
 
-Yume Gotify provides a Gotify-compatible Worker backend and React web client.
-The interface follows the shared Yume visual language with rounded liquid-glass
-surfaces, responsive layouts, and coordinated light and dark themes.
+Yume Gotify is designed to run serverlessly on Cloudflare Workers, with D1, R2,
+and Durable Objects for persistence, images, and realtime streams. Deploy it
+without managing servers while retaining a Gotify-compatible API, a responsive
+React administration interface, and multilingual language and theme controls.
 
-> [!WARNING] This project has been developed with assistance from Codex, Gemini,
-> and Copilot and has not yet received a complete independent security review.
+> **Security:** This software is provided as-is and has not been independently
+> audited or certified. Operators are responsible for reviewing the code,
+> securing deployment secrets, controlling access, and checking configuration
+> before production use. Report vulnerabilities privately through GitHub
+> Security Advisories when available.
+
+> **Open source:** This project is licensed under the MIT License. Portions of
+> its API and web interface are derived from [gotify/server](https://github.com/gotify/server);
+> see [LICENSE](./LICENSE) for copyright and license notices. MiSans and other
+> third-party materials remain under their own terms; see
+> [third-party notices](./THIRD_PARTY_NOTICES.md).
 
 The server API and parts of the original web interface are derived from
 [gotify/server](https://github.com/gotify/server). Credit for the upstream work
@@ -38,8 +60,8 @@ belongs to the Gotify contributors.
 - Japanese, English, French, Simplified Chinese, and Traditional Chinese
 - Automatic language detection plus explicit language selection
 - Automatic, light, and dark themes
-- Cross-site Yume language and theme synchronization through shared `.yume.zone`
-  preference cookies, with local-storage fallback
+- Optional cross-site language and theme synchronization across configured
+  subdomains; disabled by default
 - Flat functional navigation plus liquid-glass language and theme controls whose
   dropdowns open inline on hover or click without a modal backdrop
 - Responsive rounded liquid-glass app bars, cards, tables, forms, menus,
@@ -69,13 +91,16 @@ pnpm run build
 pnpm run cf-typegen
 ```
 
+`wrangler.example.jsonc` is the tracked deployment template. The pnpm build,
+development, test, and deployment scripts copy it to the Git-ignored
+`wrangler.jsonc` when that local file is missing. Edit the template for
+deployment defaults, or edit the local copy for machine-specific settings.
 Run `pnpm run cf-typegen` whenever a binding, `vars`, or `secrets.required`
-entry changes in `wrangler.jsonc`. It regenerates `worker-configuration.d.ts`
-from the active Wrangler configuration.
+entry changes in the template. It regenerates `worker-configuration.d.ts`.
 
 ## Runtime configuration
 
-Non-secret settings are defined in the `vars` object in `wrangler.jsonc`. The
+Non-secret settings are defined in the `vars` object in `wrangler.example.jsonc`. The
 current configuration declares `GOTIFY_DEFAULTUSER_PASS` and
 `GOTIFY_OIDC_CLIENTSECRET` as required Wrangler secrets. They must not be put in
 `vars` or committed to the repository.
@@ -91,9 +116,15 @@ The OIDC client secret is read at runtime from the Worker secret binding. The
 OIDC issuer and client ID are intentionally non-secret configuration values.
 
 `GOTIFY_LOCALAUTH_ENABLED` is a Yume Gotify switch, not an upstream Gotify 3
-environment variable. It is `true` in the committed configuration, so password
-login and OIDC are both available. Set it to `false` while keeping
-`GOTIFY_OIDC_ENABLED=true` to run an OIDC-only login surface.
+environment variable. It is `false` in the committed configuration, so OIDC is
+the only login surface by default. Set it to `true` to enable password login
+alongside OIDC.
+
+`GOTIFY_CROSS_SITE_PREFERENCE_SYNC` controls whether language and theme
+preferences are shared across subdomains. It defaults to `false`, which keeps
+preferences in the current browser. To enable sharing, set it to `true` and set
+`GOTIFY_PREFERENCE_COOKIE_DOMAIN` to the common parent domain, such as
+`.example.com`. The app must run on that domain or one of its subdomains.
 
 ### Versioned components
 
@@ -106,6 +137,27 @@ the assistant contract without confusing it with the Gotify server version:
 | iGotify Notification Assistant | `1.6.0.0`     | `/Version` and `/api/version` |
 
 Keep the two values separate when upgrading either component.
+
+### iGotify Notification Assistant support
+
+This project implements the iGotify Notification Assistant 1.6.0.0 API and
+device lifecycle:
+
+- Version and integrated-realtime discovery: `GET /Version`, `/api/version`,
+  `/realtime`, and `/api/realtime`.
+- Device registration and removal: `POST /device` and `DELETE /device`;
+  re-registration refreshes the SecNtfy token and public-key association.
+- Device utilities: `POST /Device/CustomHeaders/{clientToken}`,
+  `GET /Device/Test/{deviceToken}`, and `POST /Notify/{clientToken}`.
+- New Gotify messages are forwarded to the registered iGotify devices that
+  belong to the message owner's account. SecNtfy preview title, body, and image
+  fields are encrypted with each device's public key. Gotify priority is
+  preserved, with priority 10 sent as a critical notification.
+- Failed deliveries are eligible for the scheduled pending-message catch-up;
+  delivery concurrency is bounded so a slow device does not block all others.
+
+iGotify native OIDC login uses the Gotify 3 PKCE endpoints documented in the
+[OIDC section](#oidc).
 
 The `assets.run_worker_first` rules route the dynamic API, authentication,
 message, plugin, iGotify, and OIDC paths through the Worker before the SPA
@@ -129,22 +181,23 @@ Gotify 3 clients and applications after upgrading.
 
 ### OIDC
 
-Set these `vars` entries in `wrangler.jsonc` (the repository contains the
-production placeholders currently used by this project):
+Set these `vars` entries in `wrangler.example.jsonc` for your OIDC provider. The
+domains below are examples; replace them with your own issuer and public
+application domain when deploying a fork:
 
 ```jsonc
 {
   "vars": {
     "GOTIFY_LOCALAUTH_ENABLED": "true",
     "GOTIFY_OIDC_ENABLED": "true",
-    "GOTIFY_OIDC_ISSUER": "https://account.yume.zone",
+    "GOTIFY_OIDC_ISSUER": "https://account.example.com",
     "GOTIFY_OIDC_CLIENTID": "replace-with-client-id",
     "GOTIFY_OIDC_USERNAMECLAIM": "email",
-    "GOTIFY_OIDC_REDIRECTURL": "https://gotify.yume.zone/auth/oidc/callback",
+    "GOTIFY_OIDC_REDIRECTURL": "https://gotify.example.com/auth/oidc/callback",
     "GOTIFY_OIDC_AUTOREGISTER": "true",
     "GOTIFY_OIDC_LINK_BY_USERNAME": "false",
     "GOTIFY_OIDC_SCOPES": "openid,profile,email",
-    "GOTIFY_OIDC_IDP_NAME": "Yume Account",
+    "GOTIFY_OIDC_IDP_NAME": "OIDC Account",
     "GOTIFY_OIDC_AUTO_REDIRECT": "false",
     "GOTIFY_OIDC_PROMPT": "login",
     "GOTIFY_SERVER_SECURECOOKIE": "true"
@@ -156,7 +209,7 @@ The browser flow uses `/auth/oidc/login` and `/auth/oidc/callback`. Register the
 following two exact redirect URIs in the OIDC provider's client configuration:
 
 ```text
-https://gotify.yume.zone/auth/oidc/callback
+https://gotify.example.com/auth/oidc/callback
 gotify://oidc/callback
 ```
 
@@ -192,44 +245,63 @@ different standard profile claims can still create a local user.
 
 ### Background image
 
-Set `GOTIFY_BACKGROUND_IMAGE_URL` to an absolute HTTP(S) URL or a site-relative
-path:
+The default background image is bundled at `public/static/yume-background.jpg`.
+Change `GOTIFY_BACKGROUND_IMAGE_URL` only if you want to override it with an
+absolute HTTP(S) URL or another site-relative path:
 
 ```jsonc
 {
   "vars": {
-    "GOTIFY_BACKGROUND_IMAGE_URL": "https://www.yume.zone/img/background4.webp"
+    "GOTIFY_BACKGROUND_IMAGE_URL": "/static/yume-background.jpg"
   }
 }
 ```
 
 The Worker exposes this value through the no-cache `/config` endpoint. The web
-client validates it before applying it and falls back to
-`/static/yume-background.webp` when the value is empty, invalid, or unavailable.
+client validates it before applying it and falls back to the bundled image when
+the value is empty, invalid, or unavailable.
 
 ### Header Logo Bar
 
-Set `GOTIFY_LOGO_BAR_URL` to an absolute HTTP(S) URL or a site-relative path:
+The Logo Bar image is bundled at `public/static/yume-logo-bar.png`. Change
+`GOTIFY_LOGO_BAR_URL` only to override it with another image:
 
 ```jsonc
 {
   "vars": {
-    "GOTIFY_LOGO_BAR_URL": "https://www.yume.zone/assets/img/yumegotify.png"
+    "GOTIFY_LOGO_BAR_URL": "/static/yume-logo-bar.png"
   }
 }
 ```
 
-The default is the official Yume Gotify Logo Bar at the URL in the example. The
-Worker publishes the value through `/config`; the web client validates it before
-replacing the bundled default.
+The Worker publishes this value through `/config`; the web client validates it
+before applying it. Both default images are included in this repository and are
+served with the application.
+
+![Bundled application architecture](./docs/images/architecture.svg)
+
+Asset sources and SHA-256 checksums are listed in
+[docs/ASSET_SOURCES.md](./docs/ASSET_SOURCES.md).
+This Wrangler configuration keeps dashboard variables on deploy. If an
+existing Worker has image URL overrides in the Cloudflare dashboard, update
+those two values there to the bundled paths above as well.
+
+### Cross-site language and theme preferences
+
+Preference synchronization is disabled by default. With
+`GOTIFY_CROSS_SITE_PREFERENCE_SYNC=false`, language and theme choices stay in
+the current browser's local storage. To enable it, set the variable to `true`
+and configure `GOTIFY_PREFERENCE_COOKIE_DOMAIN` to a parent domain you control,
+such as `.example.com`. Only matching hosts share the cookie.
+
+![Preference synchronization behavior](./docs/images/preference-sync.svg)
 
 ### CORS origin
 
 `CORS_ALLOW_ORIGIN` controls the `Access-Control-Allow-Origin` response header:
 
 - `""` uses the incoming browser `Origin`, or `*` when no origin is provided.
-- `"https://gotify.yume.zone"` fixes browser access to the production site
-  origin.
+- `"https://gotify.example.com"` fixes browser access to one site origin.
 - Only one explicit origin is currently supported; do not use a comma-separated
   list.
 
@@ -255,14 +327,17 @@ without a local deployment command or a GitHub Actions workflow.
 6. Add `GOTIFY_OIDC_CLIENTSECRET` as a secret in **Variables & Secrets**.
 7. Redeploy so both secrets and runtime variables are available to the Worker.
 
-D1 and R2 resource identifiers are intentionally omitted from `wrangler.jsonc`
-so Workers Builds can provision them in the target account. The Worker applies
+D1 and R2 resource identifiers are intentionally omitted from
+`wrangler.example.jsonc` so Wrangler can provision them in the target account.
+The Worker applies
 the committed D1 migrations before handling application traffic.
+For a fork, review the D1 database and R2 bucket names as well as the domain
+configuration so the deployment uses resources owned by the target account.
 
 ### Custom-domain-only routing
 
-The committed Wrangler configuration exposes the Worker only through the
-`gotify.yume.zone` custom domain:
+The Wrangler configuration uses `gotify.example.com` as a placeholder custom
+domain. Change it to a domain in your Cloudflare account before deployment:
 
 ```jsonc
 {
@@ -270,7 +345,7 @@ The committed Wrangler configuration exposes the Worker only through the
   "preview_urls": false,
   "routes": [
     {
-      "pattern": "gotify.yume.zone",
+      "pattern": "gotify.example.com",
       "custom_domain": true
     }
   ]
@@ -289,6 +364,16 @@ domain must belong to the Cloudflare account used for deployment.
   `generateLoadPlugin([...])`.
 - `src/worker/gen/load.plugin.ts` is generated from the configured package list.
 
+## Examples
+
+- [Send a notification](./examples/send-message.sh) with an application token
+  supplied through the `GOTIFY_APP_TOKEN` environment variable.
+- [Example message body](./examples/message.json).
+- [Local secret template](./examples/dev.vars.example); copy it to
+  `.dev.vars` and replace every placeholder before local use.
+- [Runtime variable examples](./examples/wrangler.vars.example.jsonc) for
+  bundled assets and the preference-sync switch.
+
 ## Known limitation
 
 - Upgrading to Gotify 3 intentionally invalidates pre-3.x application and client
@@ -298,4 +383,4 @@ domain must belong to the Cloudflare account used for deployment.
 
 ## Client
 
-<a href="https://www.raycast.com/Lemon/gotify" title="Install the Gotify Raycast extension"><img src="https://www.raycast.com/Lemon/gotify/install_button@2x.png?v=1.1" height="64" alt="Install Gotify Raycast extension" /></a>
+[Install the Gotify Raycast extension](https://www.raycast.com/Lemon/gotify).

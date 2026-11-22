@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 430" role="img" aria-labelledby="title desc">
+  <title id="title">Yume Gotify architecture</title>
+  <desc id="desc">Browser traffic reaches a Cloudflare Worker, which uses D1, R2, and a Durable Object. Optional OIDC and iGotify services connect over HTTPS.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#7764d8"/>
+    </marker>
+    <style>
+      text { font-family: Inter, ui-sans-serif, system-ui, sans-serif; fill: #22263a }
+      .label { font-size: 17px; font-weight: 700 }
+      .sub { font-size: 13px; fill: #535970 }
+      .box { stroke: #c9c4e8; stroke-width: 2 }
+      .arrow { fill: none; stroke: #7764d8; stroke-width: 3; marker-end: url(#arrow) }
+    </style>
+  </defs>
+  <rect width="1000" height="430" rx="28" fill="#f7f5ff"/>
+  <text x="42" y="48" class="label" font-size="24">Yume Gotify · Cloudflare Workers architecture</text>
+
+  <rect x="46" y="150" width="190" height="112" rx="18" fill="#fff" class="box"/>
+  <text x="141" y="193" text-anchor="middle" class="label">Browser</text>
+  <text x="141" y="221" text-anchor="middle" class="sub">React web client</text>
+  <text x="141" y="243" text-anchor="middle" class="sub">REST · WebSocket</text>
+
+  <rect x="327" y="115" width="250" height="182" rx="20" fill="#e9e4ff" class="box"/>
+  <text x="452" y="161" text-anchor="middle" class="label">Cloudflare Worker</text>
+  <text x="452" y="190" text-anchor="middle" class="sub">API · authentication · OIDC</text>
+  <text x="452" y="216" text-anchor="middle" class="sub">SPA routing · iGotify</text>
+  <text x="452" y="252" text-anchor="middle" class="sub">Runtime configuration</text>
+
+  <rect x="724" y="62" width="218" height="90" rx="16" fill="#fff" class="box"/>
+  <text x="833" y="100" text-anchor="middle" class="label">D1</text>
+  <text x="833" y="126" text-anchor="middle" class="sub">Users · apps · messages</text>
+
+  <rect x="724" y="181" width="218" height="90" rx="16" fill="#fff" class="box"/>
+  <text x="833" y="219" text-anchor="middle" class="label">R2</text>
+  <text x="833" y="245" text-anchor="middle" class="sub">Application images</text>
+
+  <rect x="724" y="300" width="218" height="90" rx="16" fill="#fff" class="box"/>
+  <text x="833" y="338" text-anchor="middle" class="label">Durable Object</text>
+  <text x="833" y="364" text-anchor="middle" class="sub">Realtime stream hub</text>
+
+  <path d="M236 206H320" class="arrow"/>
+  <path d="M577 155 716 112" class="arrow"/>
+  <path d="M577 206H716" class="arrow"/>
+  <path d="M577 257 716 339" class="arrow"/>
+
+  <text x="49" y="350" class="sub">Static images and fonts are bundled with the web client.</text>
+  <text x="49" y="373" class="sub">Optional integrations (OIDC / SecNtfy) use configured endpoints.</text>
+</svg>

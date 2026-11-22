@@ -154,8 +154,14 @@ app.get('/config', (c) => {
     register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
     localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
     oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
-    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'Yume Account',
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC Account',
     oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false),
+    crossSitePreferenceSync: boolFromEnv(
+      c.env.GOTIFY_CROSS_SITE_PREFERENCE_SYNC,
+      false
+    ),
+    preferenceCookieDomain:
+      c.env.GOTIFY_PREFERENCE_COOKIE_DOMAIN?.trim() || '.example.com',
     version: {
       version: c.env.GOTIFY_VERSION ?? 'worker-dev',
       commit: c.env.GOTIFY_COMMIT ?? 'unknown',
@@ -163,10 +169,10 @@ app.get('/config', (c) => {
     },
     backgroundImageUrl:
       c.env.GOTIFY_BACKGROUND_IMAGE_URL?.trim() ||
-      '/static/yume-background.webp',
+      '/static/yume-background.jpg',
     logoBarUrl:
       c.env.GOTIFY_LOGO_BAR_URL?.trim() ||
-      'https://www.yume.zone/assets/img/yumegotify.png'
+      '/static/yume-logo-bar.png'
   })
 })
 
@@ -244,7 +250,7 @@ app.get('/gotifyinfo', (c) =>
     register: boolFromEnv(c.env.GOTIFY_REGISTRATION, false),
     localAuth: boolFromEnv(c.env.GOTIFY_LOCALAUTH_ENABLED, true),
     oidc: boolFromEnv(c.env.GOTIFY_OIDC_ENABLED, false),
-    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'Yume Account',
+    oidcIdpName: c.env.GOTIFY_OIDC_IDP_NAME ?? 'OIDC Account',
     oidcAutoRedirect: boolFromEnv(c.env.GOTIFY_OIDC_AUTO_REDIRECT, false)
   })
 )

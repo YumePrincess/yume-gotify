@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 360" role="img" aria-labelledby="title desc">
+  <title id="title">Preference synchronization configuration</title>
+  <desc id="desc">Preference synchronization is disabled by default. When enabled, a configured parent-domain cookie syncs language and theme across matching subdomains. Other hosts keep preferences locally.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#7764d8"/>
+    </marker>
+    <style>
+      text { font-family: Inter, ui-sans-serif, system-ui, sans-serif; fill: #22263a }
+      .label { font-size: 17px; font-weight: 700 }
+      .sub { font-size: 13px; fill: #535970 }
+      .box { stroke: #c9c4e8; stroke-width: 2 }
+      .arrow { fill: none; stroke: #7764d8; stroke-width: 3; marker-end: url(#arrow) }
+    </style>
+  </defs>
+  <rect width="1000" height="360" rx="28" fill="#f7f5ff"/>
+  <text x="42" y="48" class="label" font-size="24">Language and theme preferences</text>
+
+  <rect x="50" y="106" width="270" height="94" rx="18" fill="#fff" class="box"/>
+  <text x="185" y="144" text-anchor="middle" class="label">Default: false</text>
+  <text x="185" y="171" text-anchor="middle" class="sub">Local storage on this browser</text>
+
+  <rect x="50" y="225" width="270" height="94" rx="18" fill="#fff" class="box"/>
+  <text x="185" y="263" text-anchor="middle" class="label">Other domains</text>
+  <text x="185" y="290" text-anchor="middle" class="sub">Always keep preferences local</text>
+
+  <rect x="390" y="130" width="230" height="150" rx="18" fill="#e9e4ff" class="box"/>
+  <text x="505" y="174" text-anchor="middle" class="label">Set to true</text>
+  <text x="505" y="203" text-anchor="middle" class="sub">Only takes effect on</text>
+  <text x="505" y="226" text-anchor="middle" class="sub">matching subdomains</text>
+  <text x="505" y="252" text-anchor="middle" class="sub">GOTIFY_CROSS_SITE_PREFERENCE_SYNC</text>
+
+  <rect x="700" y="130" width="250" height="150" rx="18" fill="#fff" class="box"/>
+  <text x="825" y="174" text-anchor="middle" class="label">Shared .example.com cookie</text>
+  <text x="825" y="205" text-anchor="middle" class="sub">Language selection</text>
+  <text x="825" y="229" text-anchor="middle" class="sub">Theme selection</text>
+  <text x="825" y="253" text-anchor="middle" class="sub">Shared across subdomains</text>
+
+  <path d="M320 153H382" class="arrow"/>
+  <path d="M620 205H692" class="arrow"/>
+</svg>

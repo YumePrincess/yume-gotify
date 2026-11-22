@@ -1,5 +1,7 @@
 import * as React from 'react'
 
+import * as config from './config'
+
 export const languageChoices = [
   'auto',
   'en',
@@ -22,7 +24,37 @@ const themeStorage = 'yume-theme'
 const legacyThemeStorage = 'gotify-theme'
 const preferenceEvent = 'yume-preferences-change'
 
+const getPreferenceCookieDomain = (): string => {
+  const domain = config
+    .get('preferenceCookieDomain')
+    .trim()
+    .toLowerCase()
+    .replace(/^\./, '')
+    .replace(/\.$/, '')
+  return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(domain)
+    ? domain
+    : ''
+}
+
+const matchesPreferenceCookieDomain = (): boolean => {
+  const domain = getPreferenceCookieDomain()
+  if (!domain) return false
+  const hostname = window.location.hostname.toLowerCase().replace(/\.$/, '')
+  return hostname === domain || hostname.endsWith(`.${domain}`)
+}
+
+const usesSharedPreferenceCookie = (): boolean =>
+  matchesPreferenceCookieDomain() && config.get('crossSitePreferenceSync')
+
 const readCookie = (name: string): string => {
+  // Do not read a previously shared cookie when cross-site sync is disabled.
+  if (
+    matchesPreferenceCookieDomain() &&
+    !config.get('crossSitePreferenceSync')
+  ) {
+    return ''
+  }
+
   const prefix = `${name}=`
   for (const rawPart of document.cookie ? document.cookie.split(';') : []) {
     const part = rawPart.trim()
@@ -37,7 +69,13 @@ const readCookie = (name: string): string => {
 }
 
 const writeCookie = (name: string, value: string): void => {
-  const hostname = window.location.hostname.toLowerCase().replace(/\.$/, '')
+  if (
+    matchesPreferenceCookieDomain() &&
+    !config.get('crossSitePreferenceSync')
+  ) {
+    return
+  }
+
   const attributes = [
     `${name}=${encodeURIComponent(value)}`,
     'Path=/',
@@ -45,8 +83,8 @@ const writeCookie = (name: string, value: string): void => {
     'SameSite=Lax'
   ]
 
-  if (hostname === 'yume.zone' || hostname.endsWith('.yume.zone')) {
-    attributes.push('Domain=yume.zone')
+  if (usesSharedPreferenceCookie()) {
+    attributes.push(`Domain=${getPreferenceCookieDomain()}`)
   }
   if (window.location.protocol === 'https:') attributes.push('Secure')
   document.cookie = attributes.join('; ')

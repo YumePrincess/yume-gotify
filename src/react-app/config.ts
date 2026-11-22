@@ -7,6 +7,8 @@ export interface IConfig {
   oidc: boolean
   oidcIdpName: string
   oidcAutoRedirect: boolean
+  crossSitePreferenceSync: boolean
+  preferenceCookieDomain: string
   version: IVersion
   backgroundImageUrl: string
   logoBarUrl: string
@@ -23,11 +25,13 @@ const config: IConfig = {
   register: false,
   localAuth: true,
   oidc: false,
-  oidcIdpName: 'Yume Account',
+  oidcIdpName: 'OIDC Account',
   oidcAutoRedirect: false,
+  crossSitePreferenceSync: false,
+  preferenceCookieDomain: '.example.com',
   version: { commit: 'unknown', buildDate: 'unknown', version: 'unknown' },
-  backgroundImageUrl: '/static/yume-background.webp',
-  logoBarUrl: 'https://www.yume.zone/assets/img/yumegotify.png',
+  backgroundImageUrl: '/static/yume-background.jpg',
+  logoBarUrl: '/static/yume-logo-bar.png',
   ...window.config
 }
 
@@ -82,6 +86,12 @@ export async function loadRuntimeConfig(): Promise<void> {
     }
     if (typeof payload.oidcAutoRedirect === 'boolean') {
       config.oidcAutoRedirect = payload.oidcAutoRedirect
+    }
+    if (typeof payload.crossSitePreferenceSync === 'boolean') {
+      config.crossSitePreferenceSync = payload.crossSitePreferenceSync
+    }
+    if (typeof payload.preferenceCookieDomain === 'string') {
+      config.preferenceCookieDomain = payload.preferenceCookieDomain.trim()
     }
     if (validVersion(payload.version)) {
       config.version = payload.version

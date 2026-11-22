@@ -55,6 +55,7 @@ const initStores = (): StoreMapping => {
   applyTheme(getThemeChoice())
   config.set('url', prodUrl)
   await config.loadRuntimeConfig()
+  applyTheme(getThemeChoice())
   config.applyBackgroundImage()
   const stores = initStores()
   initApiClient(stores.currentUser, stores.snackManager.snack)
